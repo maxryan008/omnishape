@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "omnishape",
+  "version": "${version}",
+  "name": "Omnishape",
+  "description": "",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/omnishape/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "dev.omnishape.client.OmnishapeClient"
+    ],
+    "main": [
+      "dev.omnishape.Omnishape"
+    ]
+  },
+  "mixins": [
+    "omnishape.mixins.json",
+    {
+      "config": "omnishape.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}

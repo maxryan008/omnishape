@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "omnishape:block/omnibench" }
+  }
+}
