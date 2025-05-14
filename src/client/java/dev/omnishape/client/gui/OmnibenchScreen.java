@@ -338,15 +338,32 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         float u1 = sprite.getU0();
         float u2 = sprite.getU1();
-        float v1 = sprite.getV0();
-        float v2 = sprite.getV1();
+        float u3 = sprite.getV0();
+        float u4 = sprite.getV1();
 
-        drawFace(buffer, mat, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, u1, v1, u2, v2); // Front face
-        drawFace(buffer, mat, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, u1, v1, u2, v2); // Back face
-        drawFace(buffer, mat, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, u1, v1, u2, v2); // Left face
-        drawFace(buffer, mat, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, u1, v1, u2, v2); // Right face
-        drawFace(buffer, mat, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, u1, v1, u2, v2); // Top face
-        drawFace(buffer, mat, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, u1, v1, u2, v2); // Bottom face
+        // These are the indices for the corners in the `corners[]` array
+        int[][] faces = {
+                {0, 1, 3, 2}, //BACK LEFT
+                {6, 7, 5, 4}, //FRONT RIGHT
+                {4, 5, 1, 0}, //TOP
+                {2, 3, 7, 6}, //BOTTOM
+                {0, 2, 6, 4}, //FRONT LEFT
+                {5, 7, 3, 1} //FRONT RIGHT
+        };
+
+        for (int[] face : faces) {
+            Vector3f v1 = new Vector3f(corners[face[0]]);
+            Vector3f v2 = new Vector3f(corners[face[1]]);
+            Vector3f v3 = new Vector3f(corners[face[2]]);
+            Vector3f v4 = new Vector3f(corners[face[3]]);
+
+            drawFace(buffer, mat,
+                    v1.x, v1.y, v1.z,
+                    v2.x, v2.y, v2.z,
+                    v3.x, v3.y, v3.z,
+                    v4.x, v4.y, v4.z,
+                    u1, u3, u2, u4); // Or use color if you prefer
+        }
 
         for (int i = 0; i < corners.length; i++) {
             Vector3f corner = corners[i];
