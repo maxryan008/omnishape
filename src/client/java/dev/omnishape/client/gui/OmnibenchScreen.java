@@ -10,13 +10,12 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
@@ -27,6 +26,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private static final ResourceLocation TEXTURE =
@@ -46,9 +48,24 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private boolean dragging = false;
     private double lastMouseX, lastMouseY;
 
+    // 8 editable corners (relative to center)
+    private final Vector3f[] corners = new Vector3f[8];
+    private final Vector4f[] projectedCorners = new Vector4f[8];
+
+    // Which corner (0–7) is currently selected
+    private int selectedCorner = -1;
+
+    // Axis being dragged: 0=X, 1=Y, 2=Z, -1=none
+    private int draggingAxis = -1;
+    private Matrix4f lastMatrix = null;
+
     public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
     }
+
+    private Vector3f dragStartCorner = null;
+    private double dragStartMouseX = 0;
+    private double dragStartMouseY = 0;
 
     @Override
     protected void init() {
@@ -80,6 +97,14 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             }
         };
         this.addRenderableWidget(detailSlider);
+
+        for (int i = 0; i < 8; i++) {
+            corners[i] = new Vector3f(
+                    (i & 1) == 0 ? 0 : 1,
+                    (i & 2) == 0 ? 0 : 1,
+                    (i & 4) == 0 ? 0 : 1
+            );
+        }
     }
 
     @Override
@@ -127,19 +152,117 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button == 0 && isInRenderPanel(mouseX, mouseY)) {
+            for (int i = 0; i < projectedCorners.length; i++) {
+                if (selectedCorner >= 0) {
+                    Vector3f base = new Vector3f(corners[selectedCorner]).sub(0.5f, 0.5f, 0.5f);
+                    float arrowLength = 0.3f;
+
+                    Matrix4f mat = lastMatrix; // extract this from renderCube or cache it
+
+                    if (mat == null) {
+                        continue;
+                    }
+
+                    Vector4f baseScreen = new Vector4f(base, 1f).mul(mat);
+                    Vector4f xScreen = new Vector4f(base.x + arrowLength, base.y, base.z, 1f).mul(mat);
+                    Vector4f yScreen = new Vector4f(base.x, base.y - arrowLength, base.z, 1f).mul(mat);
+                    Vector4f zScreen = new Vector4f(base.x, base.y, base.z + arrowLength, 1f).mul(mat);
+
+                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), xScreen.x(), xScreen.y(), 2f)) {
+                        draggingAxis = 0;
+                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartMouseX = mouseX;
+                        dragStartMouseY = mouseY;
+                        return true;
+                    }
+                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), yScreen.x(), yScreen.y(), 2f)) {
+                        draggingAxis = 1;
+                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartMouseX = mouseX;
+                        dragStartMouseY = mouseY;
+                        return true;
+                    }
+                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), zScreen.x(), zScreen.y(), 2f)) {
+                        draggingAxis = 2;
+                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartMouseX = mouseX;
+                        dragStartMouseY = mouseY;
+                        return true;
+                    }
+                }
+
+                Vector4f screenCorner = projectedCorners[i];
+                float screenX = screenCorner.x();
+                float screenY = screenCorner.y();
+                float screenZ = screenCorner.z();
+
+                // Only allow selecting visible corners (in front of the screen/cube)
+                if (screenZ < 10 || screenZ > 100) continue; // too far or behind
+
+                // Mini cube is 0.1 units in 3D space, scaled by 40px
+                float halfSize = 0.1f * 40f / 2f;
+
+                float left = screenX - halfSize;
+                float right = screenX + halfSize;
+                float top = screenY - halfSize;
+                float bottom = screenY + halfSize;
+
+                if (mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom) {
+                    selectedCorner = (selectedCorner == i) ? -1 : i; // toggle selection
+                    draggingAxis = -1;
+                    return true;
+                }
+            }
+
+            // If not clicking on any visible corner, allow dragging
             dragging = true;
             lastMouseX = mouseX;
             lastMouseY = mouseY;
             return true;
         }
+
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
+        if (draggingAxis >= 0 && selectedCorner >= 0 && dragStartCorner != null && lastMatrix != null) {
+            // Determine world axis direction
+            Vector3f axis = switch (draggingAxis) {
+                case 0 -> new Vector3f(1, 0, 0);
+                case 1 -> new Vector3f(0, 1, 0);
+                default -> new Vector3f(0, 0, 1);
+            };
+
+            // Project axis into screen space (from origin)
+            Vector4f axisScreen = new Vector4f(axis, 0).mul(lastMatrix);
+            Vector2f screenAxis = new Vector2f(axisScreen.x(), axisScreen.y()).normalize();
+
+            // Convert mouse drag to screen-space movement vector
+            Vector2f mouseDelta = new Vector2f((float) dx, (float) dy); // Y is inverted in screen space
+
+            // Project mouse delta onto axis screen direction
+            float movementAmount = mouseDelta.dot(screenAxis) / 40f;
+
+            // Apply movement
+            Vector3f current = corners[selectedCorner];
+            if (draggingAxis == 0)
+                current.x = Mth.clamp(current.x + movementAmount, 0f, 1f);
+            else if (draggingAxis == 1)
+                current.y = Mth.clamp(current.y + movementAmount, 0f, 1f);
+            else
+                current.z = Mth.clamp(current.z + movementAmount, 0f, 1f);
+
+            dragStartCorner.set(current);
+            dragStartMouseX = mouseX;
+            dragStartMouseY = mouseY;
+
+            return true;
+        }
+
         if (dragging) {
-            rotY += (float) (mouseX - lastMouseX);
-            rotX += (float) (mouseY - lastMouseY);
+            rotY += (float) dx;
+            rotX += (float) dy;
 
             // Clamp X rotation to avoid flipping
             rotX = Mth.clamp(rotX, -90f, 90f);
@@ -148,6 +271,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             lastMouseY = mouseY;
             return true;
         }
+
         return super.mouseDragged(mouseX, mouseY, button, dx, dy);
     }
 
@@ -166,9 +290,10 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0 && dragging) {
+        if (button == 0) {
             dragging = false;
-            return true;
+            draggingAxis = -1;
+            dragStartCorner = null;
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }
@@ -198,16 +323,18 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         float centerY = this.topPos + 81;
 
         pose.translate(centerX, centerY, 40);
-        pose.scale(40f, -40f, 40f); // flip Y for GUI space
+        pose.scale(40f, 40f, 40f); // flip Y for GUI space
         pose.mulPose(Axis.XP.rotationDegrees(-rotX));
-        pose.mulPose(Axis.YP.rotationDegrees(-rotY));
+        pose.mulPose(Axis.YP.rotationDegrees(rotY));
 
         gui.flush(); // flush previous buffer before using direct draw
 
         RenderSystem.setShaderTexture(0, sprite.atlasLocation());
+        RenderSystem.enableDepthTest();
 
         VertexConsumer buffer = gui.bufferSource().getBuffer(RenderType.solid());
         Matrix4f mat = pose.last().pose();
+        lastMatrix = mat;
 
         float u1 = sprite.getU0();
         float u2 = sprite.getU1();
@@ -221,10 +348,69 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         drawFace(buffer, mat, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, u1, v1, u2, v2); // Top face
         drawFace(buffer, mat, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, u1, v1, u2, v2); // Bottom face
 
+        for (int i = 0; i < corners.length; i++) {
+            Vector3f corner = corners[i];
+            Vector4f pos = new Vector4f(corner.x - 0.5125f, corner.y - 0.5125f, corner.z - 0.5125f, 1f);
+            renderMiniCube(gui, mat, corner.x - 0.5625f, corner.y - 0.5625f, corner.z - 0.5625f, 0.1f, isSelected(i));
+            pos = mat.transform(pos);
+            projectedCorners[i] = pos; // save in projected screen space
+        }
+
         pose.popPose();
+        RenderSystem.disableDepthTest();
+
+        if (selectedCorner >= 0) {
+            renderXYZArrows2D(gui, mat);
+        }
 
         // Ensure it's flushed (if necessary)
         gui.flush();
+    }
+
+    private void renderXYZArrows2D(GuiGraphics gui, Matrix4f mat) {
+        if (selectedCorner < 0) return;
+
+        if (mat == null) return;
+
+        Vector3f baseCorner = corners[selectedCorner];
+        Vector3f base = new Vector3f(baseCorner).sub(0.5f, 0.5f, 0.5f);
+
+        float arrowLength = 0.3f;
+
+        Vector4f baseScreen = new Vector4f(base, 1.0f).mul(mat);
+        Vector4f xScreen = new Vector4f(new Vector3f(base).add(arrowLength, 0, 0), 1.0f).mul(mat);
+        Vector4f yScreen = new Vector4f(new Vector3f(base).add(0, -arrowLength, 0), 1.0f).mul(mat);
+        Vector4f zScreen = new Vector4f(new Vector3f(base).add(0, 0, arrowLength), 1.0f).mul(mat);
+
+        float bx = baseScreen.x();
+        float by = baseScreen.y();
+
+        drawThickLine(gui, bx, by, xScreen.x(), xScreen.y(), 2f, 0xFFFF0000); // X - red
+        drawThickLine(gui, bx, by, yScreen.x(), yScreen.y(), 2f, 0xFF00FF00); // Y - green
+        drawThickLine(gui, bx, by, zScreen.x(), zScreen.y(), 2f, 0xFF0000FF); // Z - blue
+    }
+
+    private void drawThickLine(GuiGraphics gui, float x1, float y1, float x2, float y2, float thickness, int colorARGB) {
+        float[] quad = getAxisQuad(x1, y1, x2, y2, thickness);
+        if (quad == null) return;
+
+        float ax = quad[0], ay = quad[1];
+        float bx = quad[2], by = quad[3];
+        float cx = quad[4], cy = quad[5];
+        float dx_ = quad[6], dy_ = quad[7];
+
+        Matrix4f mat = gui.pose().last().pose();
+        VertexConsumer buffer = gui.bufferSource().getBuffer(RenderType.guiOverlay());
+
+        int a = FastColor.ARGB32.alpha(colorARGB);
+        int r = FastColor.ARGB32.red(colorARGB);
+        int g = FastColor.ARGB32.green(colorARGB);
+        int b = FastColor.ARGB32.blue(colorARGB);
+
+        buffer.addVertex(mat, ax, ay, 0).setColor(r, g, b, a);
+        buffer.addVertex(mat, dx_, dy_, 0).setColor(r, g, b, a);
+        buffer.addVertex(mat, cx, cy, 0).setColor(r, g, b, a);
+        buffer.addVertex(mat, bx, by, 0).setColor(r, g, b, a);
     }
 
     private void drawFace(VertexConsumer buffer, Matrix4f mat,
@@ -237,5 +423,102 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         buffer.addVertex(mat, x2 - 0.5f, y2 - 0.5f, z2 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u2, v1).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
         buffer.addVertex(mat, x3 - 0.5f, y3 - 0.5f, z3 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u2, v2).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
         buffer.addVertex(mat, x4 - 0.5f, y4 - 0.5f, z4 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u1, v2).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
+    }
+
+    private void drawFace(VertexConsumer buffer, Matrix4f mat,
+                          float x1, float y1, float z1,
+                          float x2, float y2, float z2,
+                          float x3, float y3, float z3,
+                          float x4, float y4, float z4,
+                          float r, float g, float b) {
+
+        buffer.addVertex(mat, x1, y1, z1).setColor(r, g, b, 1f).setNormal(0, 0, 0).setUv(0, 0).setUv1(0, 10).setUv2(240, 240);
+        buffer.addVertex(mat, x2, y2, z2).setColor(r, g, b, 1f).setNormal(0, 0, 0).setUv(0, 0).setUv1(0, 10).setUv2(240, 240);
+        buffer.addVertex(mat, x3, y3, z3).setColor(r, g, b, 1f).setNormal(0, 0, 0).setUv(0, 0).setUv1(0, 10).setUv2(240, 240);
+        buffer.addVertex(mat, x4, y4, z4).setColor(r, g, b, 1f).setNormal(0, 0, 0).setUv(0, 0).setUv1(0, 10).setUv2(240, 240);
+    }
+
+    private void renderMiniCube(GuiGraphics gui, Matrix4f parentMat, float x, float y, float z, float size, boolean selected) {
+        Matrix4f mat = new Matrix4f(parentMat);
+        mat.translate(x, y, z);
+        mat.scale(size);
+
+        float r = selected ? 0f : 1f;
+        float g = selected ? 1f : 0f;
+        float b = selected ? 0f : 0f;
+
+        VertexConsumer buffer = gui.bufferSource().getBuffer(RenderType.gui());
+
+        drawFace(buffer, mat, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, r, g, b); // Front
+        drawFace(buffer, mat, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, r, g, b); // Back
+        drawFace(buffer, mat, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, r, g, b); // Left
+        drawFace(buffer, mat, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, r, g, b); // Right
+        drawFace(buffer, mat, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 1, r, g, b); // Top
+        drawFace(buffer, mat, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, r, g, b); // Bottom
+    }
+
+    private boolean isSelected(int i) {
+        return selectedCorner == i;
+    }
+
+    private float[] getAxisQuad(float x1, float y1, float x2, float y2, float thickness) {
+        float dx = x2 - x1;
+        float dy = y2 - y1;
+        float len = Mth.sqrt(dx * dx + dy * dy);
+        if (len == 0) return null;
+
+        float px = -dy / len;
+        float py = dx / len;
+
+        float halfWidth = thickness / 2.0f;
+        float ox = px * halfWidth;
+        float oy = py * halfWidth;
+
+        return new float[]{
+                x1 + ox, y1 + oy, // A
+                x1 - ox, y1 - oy, // B
+                x2 - ox, y2 - oy, // C
+                x2 + ox, y2 + oy  // D
+        };
+    }
+
+    private boolean isMouseInsideAxis(double mouseX, double mouseY, float x1, float y1, float x2, float y2, float thickness) {
+        float[] quad = getAxisQuad(x1, y1, x2, y2, thickness);
+        if (quad == null) return false;
+
+        float ax = quad[0], ay = quad[1];
+        float bx = quad[2], by = quad[3];
+        float cx = quad[4], cy = quad[5];
+        float dx_ = quad[6], dy_ = quad[7];
+
+        return pointInTriangle(mouseX, mouseY, ax, ay, bx, by, cx, cy) ||
+                pointInTriangle(mouseX, mouseY, ax, ay, cx, cy, dx_, dy_);
+    }
+
+    private boolean pointInTriangle(double px, double py,
+                                    float ax, float ay,
+                                    float bx, float by,
+                                    float cx, float cy) {
+        float v0x = cx - ax;
+        float v0y = cy - ay;
+        float v1x = bx - ax;
+        float v1y = by - ay;
+        float v2x = (float) px - ax;
+        float v2y = (float) py - ay;
+
+        float dot00 = v0x * v0x + v0y * v0y;
+        float dot01 = v0x * v1x + v0y * v1y;
+        float dot02 = v0x * v2x + v0y * v2y;
+        float dot11 = v1x * v1x + v1y * v1y;
+        float dot12 = v1x * v2x + v1y * v2y;
+
+        float denom = dot00 * dot11 - dot01 * dot01;
+        if (denom == 0) return false;
+
+        float invDenom = 1f / denom;
+        float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+        float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+        return (u >= 0) && (v >= 0) && (u + v <= 1);
     }
 }
