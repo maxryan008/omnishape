@@ -1,5 +1,6 @@
 package dev.omnishape.client.gui;
 
+import dev.omnishape.Omnishape;
 import dev.omnishape.menu.OmnibenchMenu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -7,12 +8,18 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.Slot;
 
 import java.awt.*;
 
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
-    private AbstractSliderButton detailSlider;
+    private static final ResourceLocation TEXTURE =
+            ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "textures/gui/omnibench_background.png");
+
+    private final int textureWidth = 320;
+    private final int textureHeight = 240;
 
     public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
@@ -20,32 +27,33 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     protected void init() {
-        // Set GUI to bottom-left with margin
-        // Set the GUI size to 90% of screen
-        this.imageWidth = (int) (this.width * 0.9);
-        this.imageHeight = (int) (this.height * 0.9);
+        float scale = getSlotScale();
+
+        this.imageWidth = textureWidth;
+        this.imageHeight = textureHeight;
 
         this.leftPos = (this.width - this.imageWidth) / 2;
         this.topPos = (this.height - this.imageHeight) / 2;
 
         super.init();
 
-        // Slider top-left corner, just under title
-        int sliderX = 20;
-        int sliderY = 25;
+        int sliderX = this.leftPos + 191;
+        int sliderY = this.topPos + 178;
+        int sliderWidth = 100;
+        int sliderHeight = 18;
 
-        detailSlider = new AbstractSliderButton(sliderX, sliderY, 100, 20,
+        AbstractSliderButton detailSlider = new AbstractSliderButton(sliderX, sliderY, sliderWidth, sliderHeight,
                 Component.literal("Detail: 1"), 0f) {
             @Override
             protected void updateMessage() {
-                int level = (int)(value * 3 + 1);
+                int level = (int) (value * 3 + 1);
                 setMessage(Component.literal("Detail: " + level));
             }
 
             @Override
             protected void applyValue() {
-                int level = (int)(value * 3 + 1);
-                // TODO: Apply level to your block config (if needed)
+                int level = (int) (value * 3 + 1);
+                // TODO: Apply level to your config
             }
         };
         this.addRenderableWidget(detailSlider);
@@ -53,8 +61,16 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.drawString(this.font, this.title, 0, 0, 0xFFFFFF);
-        guiGraphics.drawString(this.font, this.playerInventoryTitle, 0, imageHeight - 100, 0xFFFFFF);
+        drawCenteredText(guiGraphics, this.title, 241, 168);
+        drawCenteredText(guiGraphics, Component.literal("Camouflage Block"), 241, 208);
+    }
+
+    private void drawCenteredText(GuiGraphics guiGraphics, Component text, int fixedX, int fixedY) {
+        int textWidth = this.font.width(text);
+        int textX = fixedX - (textWidth / 2);
+        int textY = fixedY - (this.font.lineHeight / 2); // optional: vertical centering
+
+        guiGraphics.drawString(this.font, text, textX, textY, 0xFFFFFF, false);
     }
 
     @Override
@@ -64,12 +80,26 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     protected void renderBg(GuiGraphics guiGraphics, float f, int i, int j) {
-        //empty
+        guiGraphics.blit(
+                TEXTURE,
+                this.leftPos, this.topPos,
+                0, 0,
+                this.imageWidth, this.imageHeight,
+                textureWidth, textureHeight
+        );
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    private float getSlotScale() {
+        float scale = Math.min(
+                this.width / (textureWidth + 20.0f),  // +margin
+                this.height / (textureHeight + 20.0f)
+        );
+        return Math.min(scale, 1.0f); // never upscale past 1x
     }
 }

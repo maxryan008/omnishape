@@ -1,7 +1,9 @@
 package dev.omnishape.menu;
 
+import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.registry.OmnishapeMenus;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.Container;
+import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -10,13 +12,34 @@ import net.minecraft.world.item.ItemStack;
 
 public class OmnibenchMenu extends AbstractContainerMenu {
 
+    private final Container internal;
+
+    public OmnibenchMenu(int syncId, Inventory inv, OmnibenchBlockEntity blockEntity) {
+        super(OmnishapeMenus.OMNIBENCH_MENU, syncId);
+
+        // Internal container with 1 slot
+        this.internal = blockEntity.getInventory();
+
+        init(inv);
+    }
+
+
+
     public OmnibenchMenu(int syncId, Inventory inv) {
         super(OmnishapeMenus.OMNIBENCH_MENU, syncId);
 
+        // Internal container with 1 slot
+        this.internal = new SimpleContainer(1);
+
+        init(inv);
+    }
+
+    private void init(Inventory inv) {
+        this.addSlot(new Slot(internal, 0, 233, 219)); // Slot index 0, GUI position (50, 50)
+
         // Position slots relative to desired bottom-aligned inventory
-        // Adjust vertical base Y to place it lower on the screen
-        int baseX = 0;
-        int baseY = 140; // Increased Y from default 84 to push inventory lower
+        int baseX = 5;
+        int baseY = 161;
 
         // Player inventory (3 rows of 9 slots)
         for (int row = 0; row < 3; row++) {
