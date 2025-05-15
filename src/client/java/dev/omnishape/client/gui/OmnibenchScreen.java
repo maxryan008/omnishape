@@ -343,7 +343,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                         dragStartMouseY = mouseY;
                         return true;
                     }
-                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), yScreen.x(), yScreen.y(), 2f)) {
+                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), -baseScreen.y(), yScreen.x(), yScreen.y(), 2f)) {
                         draggingAxis = 1;
                         dragStartCorner = new Vector3f(corners[selectedCorner]);
                         dragStartMouseX = mouseX;
@@ -502,7 +502,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         pose.translate(centerX, centerY, 40);
         pose.scale(40f, 40f, 40f); // flip Y for GUI space
         pose.mulPose(Axis.XP.rotationDegrees(-rotX));
-        pose.mulPose(Axis.YP.rotationDegrees(rotY));
+        pose.mulPose(Axis.XP.rotationDegrees(180));
+        pose.mulPose(Axis.YP.rotationDegrees(-rotY));
 
         gui.flush(); // flush previous buffer before using direct draw
 
@@ -551,6 +552,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 // Shift corners to [-0.5, 0.5] centered space
                 vs[i] = new Vector3f(corners[face[i]]).sub(0.5f, 0.5f, 0.5f);
             }
+
 
             // Calculate bounds in U/V directions
             float minUx = Float.MAX_VALUE, maxUx = -Float.MAX_VALUE;
@@ -622,7 +624,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         Vector4f baseScreen = new Vector4f(base, 1.0f).mul(mat);
         Vector4f xScreen = new Vector4f(new Vector3f(base).add(arrowLength, 0, 0), 1.0f).mul(mat);
-        Vector4f yScreen = new Vector4f(new Vector3f(base).add(0, -arrowLength, 0), 1.0f).mul(mat);
+        Vector4f yScreen = new Vector4f(new Vector3f(base).add(0, arrowLength, 0), 1.0f).mul(mat);
         Vector4f zScreen = new Vector4f(new Vector3f(base).add(0, 0, arrowLength), 1.0f).mul(mat);
 
         float bx = baseScreen.x();
