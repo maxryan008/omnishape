@@ -1,7 +1,12 @@
 package dev.omnishape.menu;
 
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
+import dev.omnishape.registry.OmnishapeBlocks;
+import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -9,6 +14,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class OmnibenchMenu extends AbstractContainerMenu {
 
@@ -35,9 +42,29 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     }
 
     private void init(Inventory inv) {
-        this.addSlot(new Slot(internal, NEW_SLOT, 233, 197));
-        this.addSlot(new Slot(internal, CAMO_SLOT, 255, 197));
-        this.addSlot(new Slot(internal, REF_SLOT, 211, 197));
+        this.addSlot(new Slot(internal, NEW_SLOT, 233, 197) {
+            @Override
+            public boolean mayPlace(ItemStack itemStack) {
+                return isFrameBlock(itemStack);
+            }
+        });
+        this.addSlot(new Slot(internal, CAMO_SLOT, 255, 197) {
+            @Override
+            public boolean mayPlace(ItemStack itemStack) {
+                return isRenderableBlock(itemStack);
+            }
+        });
+        this.addSlot(new Slot(internal, REF_SLOT, 211, 197) {
+            @Override
+            public boolean mayPlace(ItemStack itemStack) {
+                return isFrameBlock(itemStack) && itemStack.getCount() == 1;
+            }
+
+            @Override
+            public int getMaxStackSize() {
+                return 1;
+            }
+        });
         this.addSlot(new Slot(internal, OUTPUT_SLOT, 233, 219) {
             @Override
             public boolean mayPlace(ItemStack itemStack) {
@@ -83,7 +110,6 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     public void updateOutputSlot() {
         ItemStack newFrame = internal.getItem(NEW_SLOT);
         ItemStack camo = internal.getItem(CAMO_SLOT);
-        ItemStack ref = internal.getItem(REF_SLOT);
 
         if (newFrame.isEmpty() || camo.isEmpty()) {
             suppressedSetItem(OUTPUT_SLOT, ItemStack.EMPTY);
@@ -92,8 +118,10 @@ public class OmnibenchMenu extends AbstractContainerMenu {
 
         int count = Math.min(newFrame.getCount(), camo.getCount());
 
-        // Placeholder item until FrameBlock exists
         ItemStack output = new ItemStack(newFrame.getItem(), count);
+        BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
+        output.set(OmnishapeComponents.CAMO_STATE, camoState);
+
         suppressedSetItem(OUTPUT_SLOT, output);
     }
 
@@ -129,6 +157,18 @@ public class OmnibenchMenu extends AbstractContainerMenu {
                 return ItemStack.EMPTY;
             }
 
+            if (index >= 27) { // from player inventory
+                if (isFrameBlock(stack)) {
+                    if (!this.moveItemStackTo(stack, NEW_SLOT, CAMO_SLOT + 1, false)) {
+                        return ItemStack.EMPTY;
+                    }
+                } else if (isRenderableBlock(stack)) {
+                    if (!this.moveItemStackTo(stack, CAMO_SLOT, CAMO_SLOT + 1, false)) {
+                        return ItemStack.EMPTY;
+                    }
+                }
+            }
+
             if (stack.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
             else slot.setChanged();
 
@@ -144,5 +184,14 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         if (internal instanceof OmnibenchBlockEntity blockEntity) {
             blockEntity.clearMenuReference();
         }
+    }
+
+    private boolean isFrameBlock(ItemStack stack) {
+        return stack.getItem() == OmnishapeBlocks.FRAME_BLOCK.asItem();
+    }
+
+    private boolean isRenderableBlock(ItemStack stack) {
+        BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
+        return state.isSolidRender(null, BlockPos.ZERO);
     }
 }

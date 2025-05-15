@@ -1,0 +1,100 @@
+package dev.omnishape.block.entity;
+
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.omnishape.registry.OmnishapeBlockEntities;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Vector3f;
+
+public class FrameBlockEntity extends BlockEntity {
+    public static final Codec<Vector3f> VECTOR3F_CODEC = RecordCodecBuilder.create(
+            instance -> instance.group(
+                    Codec.FLOAT.fieldOf("x").forGetter(v -> v.x),
+                    Codec.FLOAT.fieldOf("y").forGetter(v -> v.y),
+                    Codec.FLOAT.fieldOf("z").forGetter(v -> v.z)
+            ).apply(instance, Vector3f::new)
+    );
+
+    @Override
+    public @Nullable Object getRenderData() {
+        return this;
+    }
+
+    private final Vector3f[] corners = new Vector3f[8];
+    private BlockState camoState = Blocks.IRON_BLOCK.defaultBlockState(); // Default fallback
+
+    public FrameBlockEntity(BlockPos pos, BlockState state) {
+        super(OmnishapeBlockEntities.FRAME_BLOCK, pos, state);
+        for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+    }
+
+    public BlockState getCamo() {
+        return camoState;
+    }
+
+    public Vector3f[] getCorners() {
+        return corners;
+    }
+
+    public void setCamo(BlockState state) {
+        this.camoState = state;
+        setChanged();
+    }
+
+    public void setCorner(int index, Vector3f value) {
+        corners[index] = value;
+        setChanged();
+    }
+
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+        super.saveAdditional(tag, provider);
+        ListTag cornerList = new ListTag();
+        for (Vector3f vec : corners) {
+            CompoundTag vecTag = new CompoundTag();
+            vecTag.putFloat("x", vec.x);
+            vecTag.putFloat("y", vec.y);
+            vecTag.putFloat("z", vec.z);
+            cornerList.add(vecTag);
+        }
+        tag.put("Corners", cornerList);
+
+        tag.put("Camo", NbtUtils.writeBlockState(camoState));
+    }
+
+    @Override
+    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+        ListTag list = tag.getList("Corners", Tag.TAG_COMPOUND);
+        for (int i = 0; i < list.size() && i < 8; i++) {
+            CompoundTag vecTag = list.getCompound(i);
+            corners[i] = new Vector3f(vecTag.getFloat("x"), vecTag.getFloat("y"), vecTag.getFloat("z"));
+        }
+
+        camoState = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("Camo"));
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+        return this.saveWithFullMetadata(provider);
+    }
+
+
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+}
