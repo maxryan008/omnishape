@@ -4,10 +4,15 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import com.mojang.math.Axis;
 import dev.omnishape.Omnishape;
+import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
+import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
+import net.minecraft.ChatFormatting;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -59,6 +64,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private int draggingAxis = -1;
     private Matrix4f lastMatrix = null;
 
+    private EditBox xInput, yInput, zInput;
+
     public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
     }
@@ -105,20 +112,40 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                     (i & 4) == 0 ? 0 : 1
             );
         }
+
+        xInput = new EditBox(this.font, leftPos + 30, topPos + 20, 50, 14, Component.literal("X"));
+        yInput = new EditBox(this.font, leftPos + 30, topPos + 38, 50, 14, Component.literal("Y"));
+        zInput = new EditBox(this.font, leftPos + 30, topPos + 56, 50, 14, Component.literal("Z"));
+
+        xInput.setResponder(str -> updateCornerFromText());
+        yInput.setResponder(str -> updateCornerFromText());
+        zInput.setResponder(str -> updateCornerFromText());
+
+        xInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
+        yInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
+        zInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
+
+        addRenderableWidget(xInput);
+        addRenderableWidget(yInput);
+        addRenderableWidget(zInput);
     }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        drawCenteredText(guiGraphics, this.title, 241, 168);
-        drawCenteredText(guiGraphics, Component.literal("Camouflage Block"), 241, 208);
+        drawCenteredText(guiGraphics, this.title, this.leftPos + 241, this.topPos + 168);
+        drawCenteredText(guiGraphics, Component.literal("Camouflage Block"), this.leftPos + 241, this.topPos + 208);
     }
 
     private void drawCenteredText(GuiGraphics guiGraphics, Component text, int fixedX, int fixedY) {
+        drawCenteredText(guiGraphics, text, fixedX, fixedY, 0xFFFFFF);
+    }
+
+    private void drawCenteredText(GuiGraphics guiGraphics, Component text, int fixedX, int fixedY, int colour) {
         int textWidth = this.font.width(text);
         int textX = fixedX - (textWidth / 2);
         int textY = fixedY - (this.font.lineHeight / 2); // optional: vertical centering
 
-        guiGraphics.drawString(this.font, text, textX, textY, 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, text, textX, textY, colour, false);
     }
 
     @Override
@@ -138,9 +165,128 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     }
 
     @Override
+    protected void containerTick() {
+        super.containerTick();
+    }
+
+    @Override
+    public boolean charTyped(char chr, int modifiers) {
+        if (xInput.charTyped(chr, modifiers) || yInput.charTyped(chr, modifiers) || zInput.charTyped(chr, modifiers)) {
+            return true;
+        }
+        return super.charTyped(chr, modifiers);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (xInput.keyPressed(keyCode, scanCode, modifiers) || yInput.keyPressed(keyCode, scanCode, modifiers) || zInput.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        super.render(guiGraphics, mouseX, mouseY, partialTick);
-        renderCube(guiGraphics);
+        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        this.renderBg(guiGraphics, partialTick, mouseX, mouseY); // Draw your background PNG
+        this.renderLabels(guiGraphics, mouseX, mouseY); // Draw titles
+
+        // Draw slots and items (copied from your overridden render above)
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(this.leftPos, this.topPos, 0.0F);
+        this.hoveredSlot = null;
+
+        for (int i = 0; i < this.menu.slots.size(); i++) {
+            Slot slot = this.menu.slots.get(i);
+            if (slot.isActive()) {
+                this.renderSlot(guiGraphics, slot);
+            }
+
+            if (this.isHovering(slot, mouseX, mouseY) && slot.isActive()) {
+                this.hoveredSlot = slot;
+                if (slot.isHighlightable()) {
+                    renderSlotHighlight(guiGraphics, slot.x, slot.y, 0);
+                }
+            }
+        }
+        guiGraphics.pose().popPose();
+
+        // Draw corner editor background panel last (so it's on top)
+        if (selectedCorner >= 0) {
+            int boxX = leftPos + 8;
+            int boxY = topPos + 8;
+            int boxW = 75;
+            int boxH = 64;
+
+            int borderColor = switch (draggingAxis) {
+                case 0 -> 0xFFFF5555; // red
+                case 1 -> 0xFF55FF55; // green
+                case 2 -> 0xFF5555FF; // blue
+                default -> 0xFFAAAAAA; // gray
+            };
+
+            guiGraphics.fill(boxX - 2, boxY - 2, boxX + boxW + 2, boxY + boxH + 2, 0xFF000000);
+            guiGraphics.fill(boxX, boxY, boxX + boxW, boxY + boxH, 0xFF222222);
+            drawBorder(guiGraphics, boxX, boxY, boxW, boxH, borderColor);
+            drawCenteredText(guiGraphics, Component.literal("Corner Editor"), boxX + 38, boxY + 7);
+            drawCenteredText(guiGraphics, Component.literal("X"), boxX + 12, boxY + 20, 0xFFFF0000);
+            drawCenteredText(guiGraphics, Component.literal("Y"), boxX + 12, boxY + 38, 0xFF00FF00);
+            drawCenteredText(guiGraphics, Component.literal("Z"), boxX + 12, boxY + 56, 0xFF0000FF);
+        }
+
+        renderCube(guiGraphics); // 3D mesh last to Z-buffer properly
+
+        // Manually render EditBoxes last so they’re on top
+        if (selectedCorner >= 0) {
+            xInput.render(guiGraphics, mouseX, mouseY, partialTick);
+            yInput.render(guiGraphics, mouseX, mouseY, partialTick);
+            zInput.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
+
+        AbstractContainerScreenAccessor accessorAbstract = (AbstractContainerScreenAccessor) this;
+        ScreenAccessor accessorScreen = (ScreenAccessor) this;
+
+        // Restore floating dragged item rendering (same as in AbstractContainerScreen)
+        ItemStack itemStack = accessorAbstract.getDraggingItem().isEmpty() ? this.menu.getCarried() : accessorAbstract.getDraggingItem();
+        if (!itemStack.isEmpty()) {
+            int offset = accessorAbstract.getDraggingItem().isEmpty() ? 8 : 16;
+            String label = null;
+
+            if (!accessorAbstract.getDraggingItem().isEmpty() && accessorAbstract.isSplittingStack()) {
+                itemStack = itemStack.copyWithCount(Mth.ceil(itemStack.getCount() / 2.0F));
+            } else if (this.isQuickCrafting && this.quickCraftSlots.size() > 1) {
+                itemStack = itemStack.copyWithCount(accessorAbstract.getQuickCraftingRemainder());
+                if (itemStack.isEmpty()) {
+                    label = ChatFormatting.YELLOW + "0";
+                }
+            }
+
+            accessorAbstract.callRenderFloatingItem(guiGraphics, itemStack, mouseX - 8, mouseY - offset, label);
+        }
+
+        // Restore snapback animation rendering
+        if (!accessorAbstract.getSnapbackItem().isEmpty()) {
+            float time = (float)(Util.getMillis() - accessorAbstract.getSnapbackTime()) / 100.0F;
+            if (time >= 1.0F) {
+                time = 1.0F;
+                accessorAbstract.setSnapbackItem(ItemStack.EMPTY);
+            }
+
+            int dx = accessorAbstract.getSnapbackEnd().x - accessorAbstract.getSnapbackStartX();
+            int dy = accessorAbstract.getSnapbackEnd().y - accessorAbstract.getSnapbackStartY();
+            int x = accessorAbstract.getSnapbackStartX() + (int)(dx * time);
+            int y = accessorAbstract.getSnapbackStartY() + (int)(dy * time);
+            accessorAbstract.callRenderFloatingItem(guiGraphics, accessorAbstract.getSnapbackItem(), x, y, null);
+        }
+
+        // Manually render selected widgets like the slider
+        for (var widget : accessorScreen.getRenderables()) {
+            // Only render if visible
+            if (widget instanceof AbstractSliderButton slider && slider.visible) {
+                slider.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
+        }
+
         renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
@@ -151,7 +297,30 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (xInput.mouseClicked(mouseX, mouseY, button)) {
+            setFocused(xInput);
+            xInput.setFocused(true);
+            yInput.setFocused(false);
+            zInput.setFocused(false);
+            return true;
+        } else if (yInput.mouseClicked(mouseX, mouseY, button)) {
+            setFocused(yInput);
+            yInput.setFocused(true);
+            xInput.setFocused(false);
+            zInput.setFocused(false);
+            return true;
+        } else if (zInput.mouseClicked(mouseX, mouseY, button)) {
+            setFocused(zInput);
+            zInput.setFocused(true);
+            xInput.setFocused(false);
+            yInput.setFocused(false);
+            return true;
+        }
+
         if (button == 0 && isInRenderPanel(mouseX, mouseY)) {
+            xInput.setFocused(false);
+            yInput.setFocused(false);
+            zInput.setFocused(false);
             for (int i = 0; i < projectedCorners.length; i++) {
                 if (selectedCorner >= 0) {
                     Vector3f base = new Vector3f(corners[selectedCorner]).sub(0.5f, 0.5f, 0.5f);
@@ -210,6 +379,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 if (mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom) {
                     selectedCorner = (selectedCorner == i) ? -1 : i; // toggle selection
                     draggingAxis = -1;
+
+                    syncCornerToTextFields();
                     return true;
                 }
             }
@@ -257,6 +428,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             dragStartMouseX = mouseX;
             dragStartMouseY = mouseY;
 
+            syncCornerToTextFields();
+
             return true;
         }
 
@@ -269,8 +442,13 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
             lastMouseX = mouseX;
             lastMouseY = mouseY;
+
+            syncCornerToTextFields();
+
             return true;
         }
+
+        syncCornerToTextFields();
 
         return super.mouseDragged(mouseX, mouseY, button, dx, dy);
     }
@@ -346,8 +524,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 {5, 7, 3, 1}  // RIGHT (X+)
         };
 
-// For each face, define which corner components map to U/V axes.
-// Format: [U axis index, V axis index] — where 0=x, 1=y, 2=z
+        // For each face, define which corner components map to U/V axes.
+        // Format: [U axis index, V axis index] — where 0=x, 1=y, 2=z
         int[][] uvAxes = {
                 {0, 1}, // BACK   → X,Y
                 {0, 1}, // FRONT  → X,Y
@@ -597,5 +775,43 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
 
         return (u >= 0) && (v >= 0) && (u + v <= 1);
+    }
+
+    private void drawBorder(GuiGraphics gui, int x, int y, int w, int h, int color) {
+        gui.fill(x, y, x + w, y + 1, color);
+        gui.fill(x, y + h - 1, x + w, y + h, color);
+        gui.fill(x, y, x + 1, y + h, color);
+        gui.fill(x + w - 1, y, x + w, y + h, color);
+    }
+
+    private void syncCornerToTextFields() {
+        if (selectedCorner < 0) return;
+        Vector3f pos = corners[selectedCorner];
+        xInput.setValue(String.format("%.3f", pos.x));
+        yInput.setValue(String.format("%.3f", pos.y));
+        zInput.setValue(String.format("%.3f", pos.z));
+    }
+
+    private void updateCornerFromText() {
+        if (!xInput.isFocused() && !yInput.isFocused() && !zInput.isFocused()) return;
+        try {
+            float x = Mth.clamp(Float.parseFloat(xInput.getValue()), 0f, 1f);
+            float y = Mth.clamp(Float.parseFloat(yInput.getValue()), 0f, 1f);
+            float z = Mth.clamp(Float.parseFloat(zInput.getValue()), 0f, 1f);
+            corners[selectedCorner].set(x, y, z);
+        } catch (NumberFormatException ignored) {
+        }
+    }
+
+    private boolean isHovering(Slot slot, double d, double e) {
+        return this.isHovering(slot.x, slot.y, 16, 16, d, e);
+    }
+
+    protected boolean isHovering(int i, int j, int k, int l, double d, double e) {
+        int m = this.leftPos;
+        int n = this.topPos;
+        d -= m;
+        e -= n;
+        return d >= i - 1 && d < i + k + 1 && e >= j - 1 && e < j + l + 1;
     }
 }

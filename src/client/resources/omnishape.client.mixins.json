@@ -1,9 +1,11 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "dev.omnishape.mixin.client",
+  "package": "dev.omnishape.client.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "AbstractContainerScreenAccessor",
+    "ScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1
