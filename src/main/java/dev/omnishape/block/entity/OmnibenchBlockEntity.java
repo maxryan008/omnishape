@@ -17,13 +17,22 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class OmnibenchBlockEntity extends BlockEntity implements MenuProvider {
 
-    private final SimpleContainer inventory = new SimpleContainer(1) {
+    private boolean suppressUpdates = false;
+
+    private final SimpleContainer inventory = new SimpleContainer(4) {
         @Override
         public void setChanged() {
             super.setChanged();
-            OmnibenchBlockEntity.this.setChanged();
+            if (!suppressUpdates) {
+                OmnibenchBlockEntity.this.setChanged();
+                if (currentMenu != null) {
+                    currentMenu.updateOutputSlot();
+                }
+            }
         }
     };
+
+    private OmnibenchMenu currentMenu = null;
 
     public OmnibenchBlockEntity(BlockPos pos, BlockState state) {
         super(OmnishapeBlockEntities.OMNIBENCH, pos, state);
@@ -33,6 +42,18 @@ public class OmnibenchBlockEntity extends BlockEntity implements MenuProvider {
         return inventory;
     }
 
+    public void setSuppressUpdates(boolean suppress) {
+        this.suppressUpdates = suppress;
+    }
+
+    public boolean isSuppressingUpdates() {
+        return suppressUpdates;
+    }
+
+    public void clearMenuReference() {
+        this.currentMenu = null;
+    }
+
     @Override
     public Component getDisplayName() {
         return Component.literal("Omnibench");
@@ -40,7 +61,9 @@ public class OmnibenchBlockEntity extends BlockEntity implements MenuProvider {
 
     @Override
     public AbstractContainerMenu createMenu(int syncId, Inventory inv, net.minecraft.world.entity.player.Player player) {
-        return new OmnibenchMenu(syncId, inv, this);
+        OmnibenchMenu menu = new OmnibenchMenu(syncId, inv, this);
+        this.currentMenu = menu;
+        return menu;
     }
 
     @Override

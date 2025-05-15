@@ -85,7 +85,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         super.init();
 
         int sliderX = this.leftPos + 191;
-        int sliderY = this.topPos + 178;
+        int sliderY = this.topPos + 174;
         int sliderWidth = 100;
         int sliderHeight = 18;
 
@@ -133,7 +133,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         drawCenteredText(guiGraphics, this.title, this.leftPos + 241, this.topPos + 168);
-        drawCenteredText(guiGraphics, Component.literal("Camouflage Block"), this.leftPos + 241, this.topPos + 208);
     }
 
     private void drawCenteredText(GuiGraphics guiGraphics, Component text, int fixedX, int fixedY) {
