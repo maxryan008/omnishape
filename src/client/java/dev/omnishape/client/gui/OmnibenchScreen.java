@@ -336,33 +336,82 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         Matrix4f mat = pose.last().pose();
         lastMatrix = mat;
 
-        float u1 = sprite.getU0();
-        float u2 = sprite.getU1();
-        float u3 = sprite.getV0();
-        float u4 = sprite.getV1();
-
-        // These are the indices for the corners in the `corners[]` array
+        // Each face: {corner0, corner1, corner2, corner3}, with matching canonical UVs: (0,0) → (1,0) → (1,1) → (0,1)
         int[][] faces = {
-                {0, 1, 3, 2}, //BACK LEFT
-                {6, 7, 5, 4}, //FRONT RIGHT
-                {4, 5, 1, 0}, //TOP
-                {2, 3, 7, 6}, //BOTTOM
-                {0, 2, 6, 4}, //FRONT LEFT
-                {5, 7, 3, 1} //FRONT RIGHT
+                {0, 1, 3, 2}, // BACK (Z-)
+                {6, 7, 5, 4}, // FRONT (Z+)
+                {4, 5, 1, 0}, // TOP (Y+)
+                {2, 3, 7, 6}, // BOTTOM (Y-)
+                {0, 2, 6, 4}, // LEFT (X-)
+                {5, 7, 3, 1}  // RIGHT (X+)
         };
 
-        for (int[] face : faces) {
-            Vector3f v1 = new Vector3f(corners[face[0]]);
-            Vector3f v2 = new Vector3f(corners[face[1]]);
-            Vector3f v3 = new Vector3f(corners[face[2]]);
-            Vector3f v4 = new Vector3f(corners[face[3]]);
+// For each face, define which corner components map to U/V axes.
+// Format: [U axis index, V axis index] — where 0=x, 1=y, 2=z
+        int[][] uvAxes = {
+                {0, 1}, // BACK   → X,Y
+                {0, 1}, // FRONT  → X,Y
+                {0, 2}, // TOP    → X,Z
+                {0, 2}, // BOTTOM → X,Z
+                {2, 1}, // LEFT   → Z,Y
+                {2, 1}  // RIGHT  → Z,Y
+        };
+
+        float minU = sprite.getU0();
+        float maxU = sprite.getU1();
+        float minV = sprite.getV0();
+        float maxV = sprite.getV1();
+        float diffU = maxU - minU;
+        float diffV = maxV - minV;
+
+        for (int f = 0; f < faces.length; f++) {
+            int[] face = faces[f];
+            int uAxis = uvAxes[f][0];
+            int vAxis = uvAxes[f][1];
+
+            Vector3f[] vs = new Vector3f[4];
+            for (int i = 0; i < 4; i++) {
+                // Shift corners to [-0.5, 0.5] centered space
+                vs[i] = new Vector3f(corners[face[i]]).sub(0.5f, 0.5f, 0.5f);
+            }
+
+            // Calculate bounds in U/V directions
+            float minUx = Float.MAX_VALUE, maxUx = -Float.MAX_VALUE;
+            float minVy = Float.MAX_VALUE, maxVy = -Float.MAX_VALUE;
+            float[] us = new float[4], vs_ = new float[4];
+
+            for (int i = 0; i < 4; i++) {
+                float[] xyz = {vs[i].x, vs[i].y, vs[i].z};
+                us[i] = xyz[uAxis];
+                vs_[i] = xyz[vAxis];
+
+                minUx = Math.min(minUx, us[i]);
+                maxUx = Math.max(maxUx, us[i]);
+                minVy = Math.min(minVy, vs_[i]);
+                maxVy = Math.max(maxVy, vs_[i]);
+            }
+
+            float uRange = maxUx - minUx;
+            float vRange = maxVy - minVy;
+            if (uRange == 0 || vRange == 0) continue; // degenerate
+
+            // Final UV assignment (normalized to [0,1] → scaled to texture)
+            Vector2f[] uvs = new Vector2f[4];
+            for (int i = 0; i < 4; i++) {
+                float normU = (us[i] - minUx) / uRange;
+                float normV = (vs_[i] - minVy) / vRange;
+
+                float u = minU + normU * diffU;
+                float v = minV + normV * diffV;
+                uvs[i] = new Vector2f(u, v);
+            }
 
             drawFace(buffer, mat,
-                    v1.x, v1.y, v1.z,
-                    v2.x, v2.y, v2.z,
-                    v3.x, v3.y, v3.z,
-                    v4.x, v4.y, v4.z,
-                    u1, u3, u2, u4); // Or use color if you prefer
+                    vs[0].x, vs[0].y, vs[0].z, uvs[0].x, uvs[0].y,
+                    vs[1].x, vs[1].y, vs[1].z, uvs[1].x, uvs[1].y,
+                    vs[2].x, vs[2].y, vs[2].z, uvs[2].x, uvs[2].y,
+                    vs[3].x, vs[3].y, vs[3].z, uvs[3].x, uvs[3].y
+            );
         }
 
         for (int i = 0; i < corners.length; i++) {
@@ -440,6 +489,17 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         buffer.addVertex(mat, x2 - 0.5f, y2 - 0.5f, z2 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u2, v1).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
         buffer.addVertex(mat, x3 - 0.5f, y3 - 0.5f, z3 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u2, v2).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
         buffer.addVertex(mat, x4 - 0.5f, y4 - 0.5f, z4 - 0.5f).setColor(1f, 1f, 1f, 1f).setUv(u1, v2).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
+    }
+
+    private void drawFace(VertexConsumer buffer, Matrix4f mat,
+                          float x1, float y1, float z1, float u1, float v1,
+                          float x2, float y2, float z2, float u2, float v2,
+                          float x3, float y3, float z3, float u3, float v3,
+                          float x4, float y4, float z4, float u4, float v4) {
+        buffer.addVertex(mat, x1, y1, z1).setColor(1f, 1f, 1f, 1f).setUv(u1, v1).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
+        buffer.addVertex(mat, x2, y2, z2).setColor(1f, 1f, 1f, 1f).setUv(u2, v2).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
+        buffer.addVertex(mat, x3, y3, z3).setColor(1f, 1f, 1f, 1f).setUv(u3, v3).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
+        buffer.addVertex(mat, x4, y4, z4).setColor(1f, 1f, 1f, 1f).setUv(u4, v4).setUv1(0, 10).setUv2(240, 240).setNormal(0, 0, 0);
     }
 
     private void drawFace(VertexConsumer buffer, Matrix4f mat,
