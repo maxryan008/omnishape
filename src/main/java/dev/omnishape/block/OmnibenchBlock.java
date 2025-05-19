@@ -37,8 +37,8 @@ public class OmnibenchBlock extends BaseEntityBlock {
     protected InteractionResult useWithoutItem(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
         if (!level.isClientSide) {
             BlockEntity be = level.getBlockEntity(blockPos);
-            if (be instanceof OmnibenchBlockEntity) {
-                player.openMenu((OmnibenchBlockEntity) be);
+            if (be instanceof OmnibenchBlockEntity omnibench) {
+                player.openMenu(omnibench);
             }
         }
         return InteractionResult.sidedSuccess(level.isClientSide);

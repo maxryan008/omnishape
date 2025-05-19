@@ -1,16 +1,22 @@
 package dev.omnishape;
 
+import dev.omnishape.network.OmnishapePackets;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 
 public class Omnishape implements ModInitializer {
 
     public static final String MOD_ID = "omnishape";
+
+    public static ResourceLocation id(String id) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, id);
+    }
 
     @Override
     public void onInitialize() {
@@ -18,6 +24,7 @@ public class Omnishape implements ModInitializer {
         OmnishapeBlockEntities.register();
         OmnishapeMenus.register();
         OmnishapeComponents.register();
+        OmnishapePackets.registerC2SPackets();
 
         ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
             entries.accept(OmnishapeBlocks.OMNIBENCH);

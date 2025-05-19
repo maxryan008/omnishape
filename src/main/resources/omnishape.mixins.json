@@ -4,6 +4,7 @@
   "package": "dev.omnishape.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AbstractContainerMenuMixin"
   ],
   "injectors": {
     "defaultRequire": 1

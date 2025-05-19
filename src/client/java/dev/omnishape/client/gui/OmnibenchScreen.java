@@ -7,6 +7,7 @@ import dev.omnishape.Omnishape;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
+import net.fabricmc.loader.impl.lib.sat4j.core.Vec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -35,6 +36,8 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
+import java.util.Vector;
+
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private static final ResourceLocation TEXTURE =
             ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "textures/gui/omnibench_background.png");
@@ -53,8 +56,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private boolean dragging = false;
     private double lastMouseX, lastMouseY;
 
-    // 8 editable corners (relative to center)
-    private final Vector3f[] corners = new Vector3f[8];
     private final Vector4f[] projectedCorners = new Vector4f[8];
 
     // Which corner (0–7) is currently selected
@@ -104,14 +105,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             }
         };
         this.addRenderableWidget(detailSlider);
-
-        for (int i = 0; i < 8; i++) {
-            corners[i] = new Vector3f(
-                    (i & 1) == 0 ? 0 : 1,
-                    (i & 2) == 0 ? 0 : 1,
-                    (i & 4) == 0 ? 0 : 1
-            );
-        }
 
         xInput = new EditBox(this.font, leftPos + 30, topPos + 20, 50, 14, Component.literal("X"));
         yInput = new EditBox(this.font, leftPos + 30, topPos + 38, 50, 14, Component.literal("Y"));
@@ -322,7 +315,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             zInput.setFocused(false);
             for (int i = 0; i < projectedCorners.length; i++) {
                 if (selectedCorner >= 0) {
-                    Vector3f base = new Vector3f(corners[selectedCorner]).sub(0.5f, 0.5f, 0.5f);
+                    Vector3f base = new Vector3f(menu.getCorners()[selectedCorner]).sub(0.5f, 0.5f, 0.5f);
                     float arrowLength = 0.3f;
 
                     Matrix4f mat = lastMatrix; // extract this from renderCube or cache it
@@ -338,21 +331,21 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
                     if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), xScreen.x(), xScreen.y(), 2f)) {
                         draggingAxis = 0;
-                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
                     }
                     if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), -baseScreen.y(), yScreen.x(), yScreen.y(), 2f)) {
                         draggingAxis = 1;
-                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
                     }
                     if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), zScreen.x(), zScreen.y(), 2f)) {
                         draggingAxis = 2;
-                        dragStartCorner = new Vector3f(corners[selectedCorner]);
+                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
@@ -415,13 +408,15 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             float movementAmount = mouseDelta.dot(screenAxis) / 40f;
 
             // Apply movement
-            Vector3f current = corners[selectedCorner];
+            Vector3f current = menu.getCorners()[selectedCorner];
             if (draggingAxis == 0)
                 current.x = Mth.clamp(current.x + movementAmount, 0f, 1f);
             else if (draggingAxis == 1)
                 current.y = Mth.clamp(current.y + movementAmount, 0f, 1f);
             else
                 current.z = Mth.clamp(current.z + movementAmount, 0f, 1f);
+
+            menu.getBlockEntity().setCorner(selectedCorner, current);
 
             dragStartCorner.set(current);
             dragStartMouseX = mouseX;
@@ -550,7 +545,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
                 // Shift corners to [-0.5, 0.5] centered space
-                vs[i] = new Vector3f(corners[face[i]]).sub(0.5f, 0.5f, 0.5f);
+                vs[i] = new Vector3f(menu.getCorners()[face[i]]).sub(0.5f, 0.5f, 0.5f);
             }
 
 
@@ -593,8 +588,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             );
         }
 
-        for (int i = 0; i < corners.length; i++) {
-            Vector3f corner = corners[i];
+        for (int i = 0; i < menu.getCorners().length; i++) {
+            Vector3f corner = menu.getCorners()[i];
             Vector4f pos = new Vector4f(corner.x - 0.5125f, corner.y - 0.5125f, corner.z - 0.5125f, 1f);
             renderMiniCube(gui, mat, corner.x - 0.5625f, corner.y - 0.5625f, corner.z - 0.5625f, 0.1f, isSelected(i));
             pos = mat.transform(pos);
@@ -617,7 +612,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         if (mat == null) return;
 
-        Vector3f baseCorner = corners[selectedCorner];
+        Vector3f baseCorner = menu.getCorners()[selectedCorner];
         Vector3f base = new Vector3f(baseCorner).sub(0.5f, 0.5f, 0.5f);
 
         float arrowLength = 0.3f;
@@ -787,7 +782,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     private void syncCornerToTextFields() {
         if (selectedCorner < 0) return;
-        Vector3f pos = corners[selectedCorner];
+        Vector3f pos = menu.getCorners()[selectedCorner];
         xInput.setValue(String.format("%.3f", pos.x));
         yInput.setValue(String.format("%.3f", pos.y));
         zInput.setValue(String.format("%.3f", pos.z));
@@ -799,7 +794,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             float x = Mth.clamp(Float.parseFloat(xInput.getValue()), 0f, 1f);
             float y = Mth.clamp(Float.parseFloat(yInput.getValue()), 0f, 1f);
             float z = Mth.clamp(Float.parseFloat(zInput.getValue()), 0f, 1f);
-            corners[selectedCorner].set(x, y, z);
+            menu.getBlockEntity().setCorner(selectedCorner, new Vector3f(x, y, z));
         } catch (NumberFormatException ignored) {
         }
     }

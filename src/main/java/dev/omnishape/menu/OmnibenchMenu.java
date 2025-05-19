@@ -1,12 +1,14 @@
 package dev.omnishape.menu;
 
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
+import dev.omnishape.mixin.AbstractContainerMenuMixin;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,6 +18,10 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
+
+import java.util.List;
 
 public class OmnibenchMenu extends AbstractContainerMenu {
 
@@ -78,11 +84,25 @@ public class OmnibenchMenu extends AbstractContainerMenu {
 
             @Override
             public void onTake(Player player, ItemStack itemStack) {
+                // Get ingredients
+                ItemStack camo = internal.getItem(CAMO_SLOT);
+
                 // Subtract ingredients
                 internal.setItem(NEW_SLOT, decrement(internal.getItem(NEW_SLOT), itemStack.getCount()));
                 internal.setItem(CAMO_SLOT, decrement(internal.getItem(CAMO_SLOT), itemStack.getCount()));
-                // Recalculate output
-                updateOutputSlot();
+
+                BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
+                itemStack.set(OmnishapeComponents.CAMO_STATE, camoState);
+
+                if (menuBlockEntity != null) {
+                    Vector3f[] original = menuBlockEntity.getCorners();
+                    List<Vector3f> cornerList = new java.util.ArrayList<>();
+                    for (Vector3f v : original) {
+                        cornerList.add(new Vector3f(v)); // copy
+                    }
+                    itemStack.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+                }
+
                 super.onTake(player, itemStack);
             }
         });
@@ -121,6 +141,15 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         ItemStack output = new ItemStack(newFrame.getItem(), count);
         BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
         output.set(OmnishapeComponents.CAMO_STATE, camoState);
+
+        if (menuBlockEntity != null) {
+            Vector3f[] original = menuBlockEntity.getCorners();
+            List<Vector3f> cornerList = new java.util.ArrayList<>();
+            for (Vector3f v : original) {
+                cornerList.add(new Vector3f(v)); // copy
+            }
+            output.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+        }
 
         suppressedSetItem(OUTPUT_SLOT, output);
     }
@@ -193,5 +222,21 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     private boolean isRenderableBlock(ItemStack stack) {
         BlockState state = Block.byItem(stack.getItem()).defaultBlockState();
         return state.isSolidRender(null, BlockPos.ZERO);
+    }
+
+    public Vector3f[] getCorners() {
+        return menuBlockEntity != null ? menuBlockEntity.getCorners() : defaultCube();
+    }
+
+    private static Vector3f[] defaultCube() {
+        Vector3f[] corners = new Vector3f[8];
+        for (int i = 0; i < 8; i++) {
+            corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+        }
+        return corners;
+    }
+
+    public OmnibenchBlockEntity getBlockEntity() {
+        return this.menuBlockEntity;
     }
 }

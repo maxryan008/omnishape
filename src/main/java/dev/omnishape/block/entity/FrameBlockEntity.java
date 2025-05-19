@@ -13,11 +13,14 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
+
+import java.util.List;
 
 public class FrameBlockEntity extends BlockEntity {
     public static final Codec<Vector3f> VECTOR3F_CODEC = RecordCodecBuilder.create(
@@ -33,7 +36,7 @@ public class FrameBlockEntity extends BlockEntity {
         return this;
     }
 
-    private final Vector3f[] corners = new Vector3f[8];
+    private Vector3f[] corners = new Vector3f[8];
     private BlockState camoState = Blocks.IRON_BLOCK.defaultBlockState(); // Default fallback
 
     public FrameBlockEntity(BlockPos pos, BlockState state) {
@@ -51,7 +54,6 @@ public class FrameBlockEntity extends BlockEntity {
 
     public void setCamo(BlockState state) {
         this.camoState = state;
-        setChanged();
     }
 
     public void setCorner(int index, Vector3f value) {
@@ -88,13 +90,29 @@ public class FrameBlockEntity extends BlockEntity {
 
     @Override
     public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        return this.saveWithFullMetadata(provider);
+        CompoundTag tag = super.getUpdateTag(provider);
+        ListTag cornerList = new ListTag();
+        for (Vector3f vec : corners) {
+            CompoundTag vecTag = new CompoundTag();
+            vecTag.putFloat("x", vec.x);
+            vecTag.putFloat("y", vec.y);
+            vecTag.putFloat("z", vec.z);
+            cornerList.add(vecTag);
+        }
+        tag.put("Corners", cornerList);
+
+        tag.put("Camo", NbtUtils.writeBlockState(camoState));
+        return tag;
     }
-
-
 
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    public void setCorners(List<Vector3f> corners) {
+        for (int i = 0; i < Math.min(this.corners.length, corners.size()); i++) {
+            this.corners[i] = new Vector3f(corners.get(i)); // clone
+        }
     }
 }

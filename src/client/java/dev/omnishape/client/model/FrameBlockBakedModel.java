@@ -23,11 +23,9 @@ import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.Property;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
-import java.util.Map;
 import java.util.function.Supplier;
 
 public class FrameBlockBakedModel extends ForwardingBakedModel {
@@ -39,7 +37,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
     @Override
     public void emitBlockQuads(BlockAndTintGetter world, BlockState state, BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
-        BlockEntity be = world.getBlockEntity(pos);
+        BlockEntity be = (BlockEntity) world.getBlockEntityRenderData(pos);
         if (!(be instanceof FrameBlockEntity frame)) {
             this.wrapped.emitBlockQuads(world, state, pos, randomSupplier, context);
             return;
