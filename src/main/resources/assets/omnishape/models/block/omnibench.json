@@ -1,6 +1,12 @@
 {
-  "parent": "block/cube_all",
+  "parent": "block/cube",
   "textures": {
-    "all": "minecraft:block/dirt"
+    "particle": "omnishape:block/omnibench_side",
+    "down": "omnishape:block/omnibench_bottom",
+    "up": "omnishape:block/omnibench_top",
+    "north": "omnishape:block/omnibench_side",
+    "south": "omnishape:block/omnibench_side",
+    "west": "omnishape:block/omnibench_side",
+    "east": "omnishape:block/omnibench_side"
   }
 }

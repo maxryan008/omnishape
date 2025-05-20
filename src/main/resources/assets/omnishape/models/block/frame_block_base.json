@@ -1,12 +1,12 @@
 {
   "parent": "block/cube",
   "textures": {
-    "particle": "minecraft:block/iron_block",
-    "down": "minecraft:block/iron_block",
-    "up": "minecraft:block/iron_block",
-    "north": "minecraft:block/iron_block",
-    "south": "minecraft:block/iron_block",
-    "west": "minecraft:block/iron_block",
-    "east": "minecraft:block/iron_block"
-  }
+    "particle": "omnishape:block/frame_block",
+    "down": "omnishape:block/frame_block",
+    "up": "omnishape:block/frame_block",
+    "north": "omnishape:block/frame_block",
+    "south": "omnishape:block/frame_block",
+    "west": "omnishape:block/frame_block",
+    "east": "omnishape:block/frame_block"
+  },
 }
