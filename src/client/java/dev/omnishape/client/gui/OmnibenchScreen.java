@@ -471,7 +471,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     }
 
     private void renderCube(GuiGraphics gui) {
-        ItemStack stack = menu.getSlot(0).getItem();
+        ItemStack stack = menu.getItem(OmnibenchMenu.CAMO_SLOT);
         Block block = Blocks.IRON_BLOCK; // fallback
 
         if (!stack.isEmpty() && stack.getItem() instanceof BlockItem blockItem) {

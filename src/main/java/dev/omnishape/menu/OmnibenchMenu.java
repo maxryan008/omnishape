@@ -166,6 +166,10 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         }
     }
 
+    public ItemStack getItem(int i) {
+        return internal.getItem(i);
+    }
+
     @Override
     public boolean stillValid(Player player) {
         return true;
