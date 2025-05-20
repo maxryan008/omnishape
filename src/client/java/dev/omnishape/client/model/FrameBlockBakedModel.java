@@ -66,7 +66,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
         int[][] faces = {
                 {2, 3, 1, 0}, {4, 5, 7, 6},
-                {0, 1, 5, 4}, {6, 7, 3, 2},
+                {0, 1, 5, 4}, {2, 6, 7, 3},
                 {4, 6, 2, 0}, {1, 3, 7, 5}
         };
 

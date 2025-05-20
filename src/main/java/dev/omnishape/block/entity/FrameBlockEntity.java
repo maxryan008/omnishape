@@ -2,6 +2,7 @@ package dev.omnishape.block.entity;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.omnishape.block.FrameBlock;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
@@ -17,19 +18,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
 
 public class FrameBlockEntity extends BlockEntity {
-    public static final Codec<Vector3f> VECTOR3F_CODEC = RecordCodecBuilder.create(
-            instance -> instance.group(
-                    Codec.FLOAT.fieldOf("x").forGetter(v -> v.x),
-                    Codec.FLOAT.fieldOf("y").forGetter(v -> v.y),
-                    Codec.FLOAT.fieldOf("z").forGetter(v -> v.z)
-            ).apply(instance, Vector3f::new)
-    );
+    private VoxelShape cachedShape = null;
 
     @Override
     public @Nullable Object getRenderData() {
@@ -112,7 +108,17 @@ public class FrameBlockEntity extends BlockEntity {
 
     public void setCorners(List<Vector3f> corners) {
         for (int i = 0; i < Math.min(this.corners.length, corners.size()); i++) {
-            this.corners[i] = new Vector3f(corners.get(i)); // clone
+            this.corners[i] = new Vector3f(corners.get(i));
         }
+        this.cachedShape = null; // invalidate cache
+        setChanged();
     }
+
+    public VoxelShape getOrBuildShape() {
+        if (cachedShape == null) {
+            cachedShape = FrameBlock.generateShapeFromCorners(corners); // or static method in helper
+        }
+        return cachedShape;
+    }
+
 }
