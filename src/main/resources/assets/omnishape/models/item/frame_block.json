@@ -1,0 +1,7 @@
+{
+  "parent": "item/generated",
+  "loader": "fabric:model",
+  "custom": {
+    "model_loader": "omnishape:frame_block_item"
+  }
+}
