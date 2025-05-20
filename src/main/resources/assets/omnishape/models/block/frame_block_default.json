@@ -3,7 +3,7 @@
   "textures": {
     "particle": "omnishape:block/frame_block",
     "down": "omnishape:block/frame_block",
-    "up": "omnishape:block/frame_block",
+    "up": "minecraft:block/dirt",
     "north": "omnishape:block/frame_block",
     "south": "omnishape:block/frame_block",
     "west": "omnishape:block/frame_block",

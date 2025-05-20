@@ -1,6 +1,7 @@
 package dev.omnishape.client.model;
 
 import dev.omnishape.block.entity.FrameBlockEntity;
+import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
@@ -18,9 +19,11 @@ import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelResourceLocation;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
@@ -53,24 +56,25 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
         }
 
         Vector3f[] corners = frame.getCorners();
-        BlockState camo = frame.getCamo();
-        if (camo.isAir()) {
-            camo = Blocks.IRON_BLOCK.defaultBlockState();
+        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
+                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
+        );
+        if (frame.getCamo().getBlock() != Blocks.AIR) {
+            BlockState storedCamo = frame.getCamo();
+            if (storedCamo != null && !storedCamo.isAir()) {
+                camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(storedCamo);
+            }
         }
-        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(camo);
         TextureAtlasSprite sprite = null;
         for (Direction dir : Direction.values()) {
-            var quads = model.getQuads(camo, dir, RandomSource.create());
+            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
             if (!quads.isEmpty()) {
                 sprite = quads.get(0).getSprite();
                 break;
             }
         }
         if (sprite == null) {
-            sprite = Minecraft.getInstance()
-                    .getModelManager()
-                    .getMissingModel()
-                    .getParticleIcon();
+            sprite = Minecraft.getInstance().getModelManager().getMissingModel().getParticleIcon();
         }
 
         int[][] faces = {
@@ -154,8 +158,10 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
         // Fallback values if data isn't attached
         Vector3f[] corners = new Vector3f[8];
         for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
-        BlockState camo = Blocks.IRON_BLOCK.defaultBlockState();
 
+        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
+                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
+        );
         DataComponentMap components = stack.getComponents();
         if (!components.isEmpty()) {
             if (components.has(OmnishapeComponents.CORNERS_STATE)) {
@@ -167,15 +173,14 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             if (components.has(OmnishapeComponents.CAMO_STATE)) {
                 BlockState storedCamo = components.get(OmnishapeComponents.CAMO_STATE);
                 if (storedCamo != null && !storedCamo.isAir()) {
-                    camo = storedCamo;
+                    camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(storedCamo);
                 }
             }
         }
 
-        BakedModel camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(camo);
         TextureAtlasSprite sprite = null;
         for (Direction dir : Direction.values()) {
-            var quads = camoModel.getQuads(camo, dir, RandomSource.create());
+            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
             if (!quads.isEmpty()) {
                 sprite = quads.get(0).getSprite();
                 break;

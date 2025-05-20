@@ -7,6 +7,7 @@ import dev.omnishape.Omnishape;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
+import dev.omnishape.registry.OmnishapeBlocks;
 import net.fabricmc.loader.impl.lib.sat4j.core.Vec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
@@ -19,10 +20,12 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
@@ -472,7 +475,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     private void renderCube(GuiGraphics gui) {
         ItemStack stack = menu.getItem(OmnibenchMenu.CAMO_SLOT);
-        Block block = Blocks.IRON_BLOCK; // fallback
+        Block block = OmnishapeBlocks.FRAME_BLOCK; // fallback
 
         if (!stack.isEmpty() && stack.getItem() instanceof BlockItem blockItem) {
             Block candidate = blockItem.getBlock();
@@ -484,9 +487,23 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         }
 
         BlockState state = block.defaultBlockState();
-        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
 
-        TextureAtlasSprite sprite = model.getParticleIcon();
+        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
+                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
+        );
+        if (!state.getBlock().equals(OmnishapeBlocks.FRAME_BLOCK)) {
+            if (!state.isAir()) {
+                camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+            }
+        }
+        TextureAtlasSprite sprite = null;
+        for (Direction dir : Direction.values()) {
+            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
+            if (!quads.isEmpty()) {
+                sprite = quads.get(0).getSprite();
+                break;
+            }
+        }
 
         PoseStack pose = gui.pose();
         pose.pushPose();

@@ -8,11 +8,13 @@ import net.minecraft.resources.ResourceLocation;
 public class OmnishapeModelLoader implements net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin {
     public static final OmnishapeModelLoader INSTANCE = new OmnishapeModelLoader();
 
-    private static final ResourceLocation FRAME_BLOCK_MODEL = ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_base");
+    public static final ResourceLocation FRAME_BLOCK_MODEL = ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_base");
     private static final ResourceLocation FRAME_ITEM_MODEL = ResourceLocation.fromNamespaceAndPath("omnishape", "item/frame_block");
 
     @Override
     public void onInitializeModelLoader(Context pluginContext) {
+        pluginContext.addModels(ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default"));
+
         // Wrap block model
         pluginContext.modifyModelAfterBake().register((model, ctx) -> {
             if (ctx.resourceId() != null && ctx.resourceId().equals(FRAME_BLOCK_MODEL)) {

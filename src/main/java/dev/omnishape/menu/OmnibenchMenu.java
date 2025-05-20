@@ -131,12 +131,17 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         ItemStack newFrame = internal.getItem(NEW_SLOT);
         ItemStack camo = internal.getItem(CAMO_SLOT);
 
-        if (newFrame.isEmpty() || camo.isEmpty()) {
+        if (newFrame.isEmpty() && camo.isEmpty()) {
             suppressedSetItem(OUTPUT_SLOT, ItemStack.EMPTY);
             return;
         }
 
-        int count = Math.min(newFrame.getCount(), camo.getCount());
+        int count;
+        if (camo.isEmpty()) {
+            count = newFrame.getCount();
+        } else {
+            count = Math.min(newFrame.getCount(), camo.getCount());
+        }
 
         ItemStack output = new ItemStack(newFrame.getItem(), count);
         BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();

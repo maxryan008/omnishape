@@ -33,7 +33,7 @@ public class FrameBlockEntity extends BlockEntity {
     }
 
     private Vector3f[] corners = new Vector3f[8];
-    private BlockState camoState = Blocks.IRON_BLOCK.defaultBlockState(); // Default fallback
+    private BlockState camoState = Blocks.AIR.defaultBlockState(); // Default fallback
 
     public FrameBlockEntity(BlockPos pos, BlockState state) {
         super(OmnishapeBlockEntities.FRAME_BLOCK, pos, state);
