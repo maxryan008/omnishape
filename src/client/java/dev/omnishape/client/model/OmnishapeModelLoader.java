@@ -6,14 +6,12 @@ public class OmnishapeModelLoader implements net.fabricmc.fabric.api.client.mode
     @Override
     public void onInitializeModelLoader(Context pluginContext) {
         pluginContext.modifyModelAfterBake().register((model, ctx) -> {
-            if (ctx.resourceId().getNamespace().equals("omnishape") && ctx.resourceId().getPath().equals("block/frame_block_base")) {
-                return new FrameBlockBakedModel(model);
+            if (ctx.resourceId() != null) {
+                if (ctx.resourceId().getNamespace().equals("omnishape") && ctx.resourceId().getPath().equals("block/frame_block_base")) {
+                    return new FrameBlockBakedModel(model);
+                }
             }
             return model;
-        });
-
-        pluginContext.resolveModel().register(context -> {
-            return null;
         });
     }
 }
