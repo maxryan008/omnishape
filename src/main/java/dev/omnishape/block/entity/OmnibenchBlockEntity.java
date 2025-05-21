@@ -23,9 +23,9 @@ import org.joml.Vector3f;
 
 public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory {
 
-    private boolean suppressUpdates = false;
     private final Vector3f[] corners = new Vector3f[8];
-
+    private boolean suppressUpdates = false;
+    private OmnibenchMenu currentMenu = null;
     private final SimpleContainer inventory = new SimpleContainer(4) {
         @Override
         public void setChanged() {
@@ -38,8 +38,6 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
             }
         }
     };
-
-    private OmnibenchMenu currentMenu = null;
 
     public OmnibenchBlockEntity(BlockPos pos, BlockState state) {
         super(OmnishapeBlockEntities.OMNIBENCH, pos, state);

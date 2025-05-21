@@ -49,15 +49,11 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private static final int PANEL_Y = 10;
     private static final int PANEL_WIDTH = 300;
     private static final int PANEL_HEIGHT = 142;
-
+    private final Vector4f[] projectedCorners = new Vector4f[8];
     private float rotX = 30f;
     private float rotY = 45f;
-
     private boolean dragging = false;
     private double lastMouseX, lastMouseY;
-
-    private final Vector4f[] projectedCorners = new Vector4f[8];
-
     // Which corner (0–7) is currently selected
     private int selectedCorner = -1;
 
@@ -66,14 +62,12 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private Matrix4f lastMatrix = null;
 
     private EditBox xInput, yInput, zInput;
-
-    public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
-        super(menu, inv, title);
-    }
-
     private Vector3f dragStartCorner = null;
     private double dragStartMouseX = 0;
     private double dragStartMouseY = 0;
+    public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
+        super(menu, inv, title);
+    }
 
     @Override
     protected void init() {
@@ -258,7 +252,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         // Restore snapback animation rendering
         if (!accessorAbstract.getSnapbackItem().isEmpty()) {
-            float time = (float)(Util.getMillis() - accessorAbstract.getSnapbackTime()) / 100.0F;
+            float time = (float) (Util.getMillis() - accessorAbstract.getSnapbackTime()) / 100.0F;
             if (time >= 1.0F) {
                 time = 1.0F;
                 accessorAbstract.setSnapbackItem(ItemStack.EMPTY);
@@ -266,8 +260,8 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
             int dx = accessorAbstract.getSnapbackEnd().x - accessorAbstract.getSnapbackStartX();
             int dy = accessorAbstract.getSnapbackEnd().y - accessorAbstract.getSnapbackStartY();
-            int x = accessorAbstract.getSnapbackStartX() + (int)(dx * time);
-            int y = accessorAbstract.getSnapbackStartY() + (int)(dy * time);
+            int x = accessorAbstract.getSnapbackStartX() + (int) (dx * time);
+            int y = accessorAbstract.getSnapbackStartY() + (int) (dy * time);
             accessorAbstract.callRenderFloatingItem(guiGraphics, accessorAbstract.getSnapbackItem(), x, y, null);
         }
 
@@ -710,7 +704,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         float r = selected ? 0f : 1f;
         float g = selected ? 1f : 0f;
-        float b = selected ? 0f : 0f;
+        float b = 0f;
 
         VertexConsumer buffer = gui.bufferSource().getBuffer(RenderType.gui());
 

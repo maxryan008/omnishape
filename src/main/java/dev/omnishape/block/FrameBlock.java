@@ -31,74 +31,7 @@ import java.util.List;
 
 public class FrameBlock extends Block implements EntityBlock {
     public static final BlockRotationProperty ROTATION = new BlockRotationProperty("rotation");
-
-    public FrameBlock(Properties properties) {
-        super(properties);
-        this.registerDefaultState(this.defaultBlockState().setValue(ROTATION, BlockRotation.IDENTITY));
-    }
-
     private static final int FRAME_HITBOX_RESOLUTION = 8;
-
-    @Override
-    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
-        if (!(level.getBlockEntity(pos) instanceof FrameBlockEntity be)) return;
-
-        if (stack.has(OmnishapeComponents.CAMO_STATE)) {
-            BlockState camo = stack.get(OmnishapeComponents.CAMO_STATE);
-            if (camo != null) {
-                be.setCamo(camo);
-            }
-        }
-
-        if (stack.has(OmnishapeComponents.CORNERS_STATE)) {
-            List<Vector3f> corners = stack.get(OmnishapeComponents.CORNERS_STATE);
-            if (!corners.isEmpty()) {
-                be.setCorners(corners);
-            }
-        }
-
-        be.setChanged();
-        level.blockUpdated(pos, this);
-    }
-
-    @Override
-    protected void onPlace(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl) {
-        super.onPlace(blockState, level, blockPos, blockState2, bl);
-    }
-
-    @Override
-    public float getExplosionResistance() {
-        return 2000F; // Needed only if you override explosion behavior
-    }
-
-    @Override
-    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
-        return new FrameBlockEntity(pos, state);
-    }
-
-    @Override
-    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        BlockEntity be = level.getBlockEntity(pos);
-        if (be instanceof FrameBlockEntity frame) {
-            BlockRotation rot = state.getValue(FrameBlock.ROTATION);
-
-            Matrix3f rotationMatrix = new Matrix3f()
-                    .rotateXYZ(
-                            (float) Math.toRadians(rot.pitch),
-                            (float) Math.toRadians(rot.yaw),
-                            (float) Math.toRadians(rot.roll)
-                    );
-
-            return frame.getOrBuildShape(rotationMatrix);
-        }
-        return Shapes.block(); // fallback
-    }
-
-    @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return getShape(state, level, pos, context); // same as visual
-    }
-
     private static final int[][] FACE_INDICES = {
             {0, 1, 3, 2}, // BACK (Z-)
             {6, 7, 5, 4}, // FRONT (Z+)
@@ -107,6 +40,11 @@ public class FrameBlock extends Block implements EntityBlock {
             {0, 2, 6, 4}, // LEFT (X-)
             {5, 7, 3, 1}  // RIGHT (X+)
     };
+
+    public FrameBlock(Properties properties) {
+        super(properties);
+        this.registerDefaultState(this.defaultBlockState().setValue(ROTATION, BlockRotation.IDENTITY));
+    }
 
     public static VoxelShape generateShapeFromCorners(Vector3f[] corners, Matrix3f rotationMatrix) {
 
@@ -154,7 +92,7 @@ public class FrameBlock extends Block implements EntityBlock {
                         }
                     }
 
-                    float fillRatio = insideCount / (float)(samplesPerAxis * samplesPerAxis * samplesPerAxis);
+                    float fillRatio = insideCount / (float) (samplesPerAxis * samplesPerAxis * samplesPerAxis);
                     if (fillRatio >= threshold) {
                         voxel[x][y][z] = true;
                     }
@@ -233,9 +171,9 @@ public class FrameBlock extends Block implements EntityBlock {
             for (int j = 0; j <= steps; j++) {
                 float t2 = j / (float) steps;
                 Vector3f p = lerp(a, b, t2);
-                int x = (int)(p.x * FRAME_HITBOX_RESOLUTION);
-                int y = (int)(p.y * FRAME_HITBOX_RESOLUTION);
-                int z = (int)(p.z * FRAME_HITBOX_RESOLUTION);
+                int x = (int) (p.x * FRAME_HITBOX_RESOLUTION);
+                int y = (int) (p.y * FRAME_HITBOX_RESOLUTION);
+                int z = (int) (p.z * FRAME_HITBOX_RESOLUTION);
                 if (x >= 0 && y >= 0 && z >= 0 && x < FRAME_HITBOX_RESOLUTION && y < FRAME_HITBOX_RESOLUTION && z < FRAME_HITBOX_RESOLUTION) {
                     grid[x][y][z] = true;
                 }
@@ -249,6 +187,66 @@ public class FrameBlock extends Block implements EntityBlock {
                 a.y + (b.y - a.y) * t,
                 a.z + (b.z - a.z) * t
         );
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer, ItemStack stack) {
+        if (!(level.getBlockEntity(pos) instanceof FrameBlockEntity be)) return;
+
+        if (stack.has(OmnishapeComponents.CAMO_STATE)) {
+            BlockState camo = stack.get(OmnishapeComponents.CAMO_STATE);
+            if (camo != null) {
+                be.setCamo(camo);
+            }
+        }
+
+        if (stack.has(OmnishapeComponents.CORNERS_STATE)) {
+            List<Vector3f> corners = stack.get(OmnishapeComponents.CORNERS_STATE);
+            if (!corners.isEmpty()) {
+                be.setCorners(corners);
+            }
+        }
+
+        be.setChanged();
+        level.blockUpdated(pos, this);
+    }
+
+    @Override
+    protected void onPlace(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl) {
+        super.onPlace(blockState, level, blockPos, blockState2, bl);
+    }
+
+    @Override
+    public float getExplosionResistance() {
+        return 2000F; // Needed only if you override explosion behavior
+    }
+
+    @Override
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
+        return new FrameBlockEntity(pos, state);
+    }
+
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        BlockEntity be = level.getBlockEntity(pos);
+        if (be instanceof FrameBlockEntity frame) {
+            BlockRotation rot = state.getValue(FrameBlock.ROTATION);
+
+            Matrix3f rotationMatrix = new Matrix3f()
+                    .rotateXYZ(
+                            (float) Math.toRadians(rot.pitch),
+                            (float) Math.toRadians(rot.yaw),
+                            (float) Math.toRadians(rot.roll)
+                    );
+
+            return frame.getOrBuildShape(rotationMatrix);
+        }
+        return Shapes.block(); // fallback
+    }
+
+    @Override
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        return getShape(state, level, pos, context); // same as visual
     }
 
     @Override

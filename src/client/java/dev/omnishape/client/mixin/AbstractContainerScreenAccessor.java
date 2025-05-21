@@ -22,6 +22,9 @@ public interface AbstractContainerScreenAccessor {
     @Accessor("snapbackItem")
     ItemStack getSnapbackItem();
 
+    @Accessor("snapbackItem")
+    void setSnapbackItem(ItemStack stack);
+
     @Accessor("snapbackTime")
     long getSnapbackTime();
 
@@ -36,7 +39,4 @@ public interface AbstractContainerScreenAccessor {
 
     @Invoker("renderFloatingItem")
     void callRenderFloatingItem(GuiGraphics graphics, ItemStack stack, int x, int y, String countText);
-
-    @Accessor("snapbackItem")
-    void setSnapbackItem(ItemStack stack);
 }

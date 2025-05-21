@@ -23,18 +23,15 @@ public class OmnishapeComponents {
     );
 
     public static final Codec<List<Vector3f>> VECTOR3F_LIST_CODEC = Codec.list(VECTOR3F_CODEC);
-
-    public static final ResourceLocation CAMO_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "camo_state");
-    public static final ResourceLocation CORNERS_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "corners_state");
-
-    public static final DataComponentType<BlockState> CAMO_STATE =
-            DataComponentType.<BlockState>builder()
-                    .persistent(BlockState.CODEC)
-                    .build();
-
     public static final DataComponentType<List<Vector3f>> CORNERS_STATE =
             DataComponentType.<List<Vector3f>>builder()
                     .persistent(VECTOR3F_LIST_CODEC)
+                    .build();
+    public static final ResourceLocation CAMO_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "camo_state");
+    public static final ResourceLocation CORNERS_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "corners_state");
+    public static final DataComponentType<BlockState> CAMO_STATE =
+            DataComponentType.<BlockState>builder()
+                    .persistent(BlockState.CODEC)
                     .build();
 
     public static void register() {

@@ -21,10 +21,6 @@ public class BlockRotation implements Comparable<BlockRotation> {
         this.roll = roll;
     }
 
-    public Vector3f toVector() {
-        return new Vector3f(pitch, yaw, roll);
-    }
-
     public static BlockRotation fromPlacementContext(BlockPlaceContext ctx) {
         Direction face = ctx.getClickedFace(); // Face the player clicked (bottom of block)
         Vec3 playerPos = ctx.getPlayer().position();
@@ -64,6 +60,10 @@ public class BlockRotation implements Comparable<BlockRotation> {
 
     public static BlockRotation fromTag(CompoundTag tag) {
         return new BlockRotation(tag.getInt("Pitch"), tag.getInt("Yaw"), tag.getInt("Roll"));
+    }
+
+    public Vector3f toVector() {
+        return new Vector3f(pitch, yaw, roll);
     }
 
     public Tag toTag() {

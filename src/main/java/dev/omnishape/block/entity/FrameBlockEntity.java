@@ -24,30 +24,36 @@ import java.util.List;
 
 public class FrameBlockEntity extends BlockEntity {
     private VoxelShape cachedShape = null;
+    private final Vector3f[] corners = new Vector3f[8];
+    private BlockState camoState = Blocks.AIR.defaultBlockState(); // Default fallback
+    public FrameBlockEntity(BlockPos pos, BlockState state) {
+        super(OmnishapeBlockEntities.FRAME_BLOCK, pos, state);
+        for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+    }
 
     @Override
     public @Nullable Object getRenderData() {
         return this;
     }
 
-    private Vector3f[] corners = new Vector3f[8];
-    private BlockState camoState = Blocks.AIR.defaultBlockState(); // Default fallback
-
-    public FrameBlockEntity(BlockPos pos, BlockState state) {
-        super(OmnishapeBlockEntities.FRAME_BLOCK, pos, state);
-        for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
-    }
-
     public BlockState getCamo() {
         return camoState;
+    }
+
+    public void setCamo(BlockState state) {
+        this.camoState = state;
     }
 
     public Vector3f[] getCorners() {
         return corners;
     }
 
-    public void setCamo(BlockState state) {
-        this.camoState = state;
+    public void setCorners(List<Vector3f> corners) {
+        for (int i = 0; i < Math.min(this.corners.length, corners.size()); i++) {
+            this.corners[i] = new Vector3f(corners.get(i));
+        }
+        this.cachedShape = null; // invalidate cache
+        setChanged();
     }
 
     public void setCorner(int index, Vector3f value) {
@@ -102,14 +108,6 @@ public class FrameBlockEntity extends BlockEntity {
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         return ClientboundBlockEntityDataPacket.create(this);
-    }
-
-    public void setCorners(List<Vector3f> corners) {
-        for (int i = 0; i < Math.min(this.corners.length, corners.size()); i++) {
-            this.corners[i] = new Vector3f(corners.get(i));
-        }
-        this.cachedShape = null; // invalidate cache
-        setChanged();
     }
 
     public VoxelShape getOrBuildShape(Matrix3f rotationMatrix) {

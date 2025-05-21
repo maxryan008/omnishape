@@ -20,13 +20,12 @@ import java.util.List;
 
 public class OmnibenchMenu extends AbstractContainerMenu {
 
-    private final Container internal;
-    private final OmnibenchBlockEntity menuBlockEntity;
-
     public static final int REF_SLOT = 0;
     public static final int NEW_SLOT = 1;
     public static final int CAMO_SLOT = 2;
     public static final int OUTPUT_SLOT = 3;
+    private final Container internal;
+    private final OmnibenchBlockEntity menuBlockEntity;
 
     public OmnibenchMenu(int syncId, Inventory inv, OmnibenchBlockEntity blockEntity) {
         super(OmnishapeMenus.OMNIBENCH_MENU, syncId);
@@ -40,6 +39,14 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         this.menuBlockEntity = null;
         this.internal = new SimpleContainer(4);
         init(inv);
+    }
+
+    private static Vector3f[] defaultCube() {
+        Vector3f[] corners = new Vector3f[8];
+        for (int i = 0; i < 8; i++) {
+            corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+        }
+        return corners;
     }
 
     private void init(Inventory inv) {
@@ -230,14 +237,6 @@ public class OmnibenchMenu extends AbstractContainerMenu {
 
     public Vector3f[] getCorners() {
         return menuBlockEntity != null ? menuBlockEntity.getCorners() : defaultCube();
-    }
-
-    private static Vector3f[] defaultCube() {
-        Vector3f[] corners = new Vector3f[8];
-        for (int i = 0; i < 8; i++) {
-            corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
-        }
-        return corners;
     }
 
     public OmnibenchBlockEntity getBlockEntity() {
