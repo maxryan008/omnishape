@@ -80,6 +80,14 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
         return corners;
     }
 
+    public boolean hasMenu() {
+        return (this.currentMenu != null);
+    }
+
+    public OmnibenchMenu getMenu() {
+        return this.currentMenu;
+    }
+
     public Vector3f getCorner(int i) {
         return corners[i];
     }

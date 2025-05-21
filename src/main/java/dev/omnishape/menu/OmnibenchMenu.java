@@ -248,4 +248,8 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     public OmnibenchBlockEntity getBlockEntity() {
         return this.menuBlockEntity;
     }
+
+    public Container getContainer() {
+        return this.internal;
+    }
 }

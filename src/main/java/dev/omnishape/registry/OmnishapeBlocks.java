@@ -15,7 +15,7 @@ import net.minecraft.world.level.material.MapColor;
 
 public class OmnishapeBlocks {
     public static final Block OMNIBENCH = new OmnibenchBlock();
-    public static final Block FRAME_BLOCK = new FrameBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(2.5F).sound(SoundType.METAL).noOcclusion().forceSolidOn());
+    public static final Block FRAME_BLOCK = new FrameBlock(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(2F).sound(SoundType.METAL).noOcclusion().forceSolidOn().requiresCorrectToolForDrops());
 
     public static void register() {
         Registry.register(BuiltInRegistries.BLOCK, ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "omnibench"), OMNIBENCH);

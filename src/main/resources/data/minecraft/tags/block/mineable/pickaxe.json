@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
+    "omnishape:frame_block",
     "omnishape:omnibench"
   ]
 }

@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
@@ -17,6 +18,8 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.pathfinder.PathComputationType;
+import net.minecraft.world.level.storage.loot.LootParams;
+import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -320,5 +323,43 @@ public class FrameBlock extends Block implements EntityBlock {
     @Override
     public StateDefinition<Block, BlockState> getStateDefinition() {
         return super.getStateDefinition();
+    }
+
+    @Override
+    public ItemStack getCloneItemStack(LevelReader levelReader, BlockPos blockPos, BlockState blockState) {
+        BlockEntity be = levelReader.getBlockEntity(blockPos);
+        if (be instanceof FrameBlockEntity frame) {
+            ItemStack stack = new ItemStack(this);
+
+            // Copy data
+            stack.set(OmnishapeComponents.CAMO_STATE, frame.getCamo());
+
+            List<Vector3f> cornerList = new java.util.ArrayList<>();
+            for (Vector3f v : frame.getCorners()) {
+                cornerList.add(new Vector3f(v));
+            }
+            stack.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+
+            return stack;
+        }
+        return super.getCloneItemStack(levelReader, blockPos, blockState);
+    }
+
+    @Override
+    protected List<ItemStack> getDrops(BlockState blockState, LootParams.Builder builder) {
+        BlockEntity be = builder.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+        if (be instanceof FrameBlockEntity frame) {
+            ItemStack stack = new ItemStack(this);
+            stack.set(OmnishapeComponents.CAMO_STATE, frame.getCamo());
+
+            List<Vector3f> cornerList = new java.util.ArrayList<>();
+            for (Vector3f v : frame.getCorners()) {
+                cornerList.add(new Vector3f(v));
+            }
+            stack.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+
+            return List.of(stack);
+        }
+        return super.getDrops(blockState, builder);
     }
 }

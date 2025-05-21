@@ -6,10 +6,7 @@ import dev.omnishape.menu.OmnibenchMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.stats.Stats;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
-import net.minecraft.world.ItemInteractionResult;
-import net.minecraft.world.MenuProvider;
+import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -28,7 +25,7 @@ import org.jetbrains.annotations.Nullable;
 
 public class OmnibenchBlock extends BaseEntityBlock {
     public OmnibenchBlock() {
-        super(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_BROWN).strength(2.5F).sound(SoundType.WOOD));
+        super(BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(2.5F).sound(SoundType.METAL).requiresCorrectToolForDrops());
     }
 
     @Override
@@ -56,5 +53,20 @@ public class OmnibenchBlock extends BaseEntityBlock {
     @Override
     protected RenderShape getRenderShape(BlockState blockState) {
         return RenderShape.MODEL;
+    }
+
+    @Override
+    protected void onRemove(BlockState blockState, Level level, BlockPos blockPos, BlockState blockState2, boolean bl) {
+        if (!blockState.is(blockState2.getBlock())) {
+            BlockEntity be = level.getBlockEntity(blockPos);
+            if (be instanceof OmnibenchBlockEntity benchEntity) {
+                if (benchEntity.hasMenu()) {
+                    OmnibenchMenu menu = benchEntity.getMenu();
+                    Containers.dropContents(level, blockPos, menu.getContainer());
+                    level.updateNeighbourForOutputSignal(blockPos, this);
+                }
+            }
+            super.onRemove(blockState, level, blockPos, blockState2, bl);
+        }
     }
 }
