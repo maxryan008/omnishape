@@ -2,7 +2,10 @@ package dev.omnishape;
 
 import net.minecraft.world.level.block.state.properties.Property;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 public class BlockRotationProperty extends Property<BlockRotation> {
     private final List<BlockRotation> values;

@@ -1,8 +1,5 @@
 package dev.omnishape.client.model;
 
-import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.client.resources.model.ModelResourceLocation;
-import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.resources.ResourceLocation;
 
 public class OmnishapeModelLoader implements net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin {

@@ -1,14 +1,14 @@
 package dev.omnishape.client.gui;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.*;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.omnishape.Omnishape;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
 import dev.omnishape.registry.OmnishapeBlocks;
-import net.fabricmc.loader.impl.lib.sat4j.core.Vec;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -32,14 +32,11 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
-
-import java.util.Vector;
 
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private static final ResourceLocation TEXTURE =
