@@ -1,5 +1,7 @@
 package dev.omnishape.client.model;
 
+import dev.omnishape.BlockRotation;
+import dev.omnishape.block.FrameBlock;
 import dev.omnishape.block.entity.FrameBlockEntity;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
@@ -32,6 +34,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -73,14 +76,27 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
                 break;
             }
         }
+
+        BlockRotation rot = state.getValue(FrameBlock.ROTATION);
+
+        Matrix3f rotationMatrix = new Matrix3f()
+                .rotateXYZ(
+                        (float) Math.toRadians(rot.pitch),
+                        (float) Math.toRadians(rot.yaw),
+                        (float) Math.toRadians(rot.roll)
+                );
+
         if (sprite == null) {
             sprite = Minecraft.getInstance().getModelManager().getMissingModel().getParticleIcon();
         }
 
         int[][] faces = {
-                {2, 3, 1, 0}, {4, 5, 7, 6},
-                {0, 1, 5, 4}, {2, 6, 7, 3},
-                {4, 6, 2, 0}, {1, 3, 7, 5}
+                {0, 1, 3, 2}, // BACK (Z-)
+                {6, 7, 5, 4}, // FRONT (Z+)
+                {4, 5, 1, 0}, // TOP (Y+)
+                {2, 3, 7, 6}, // BOTTOM (Y-)
+                {0, 2, 6, 4}, // LEFT (X-)
+                {5, 7, 3, 1}  // RIGHT (X+)
         };
 
         int[][] uvAxes = {
@@ -119,6 +135,16 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
                 maxVy = Math.max(maxVy, vs_[i]);
             }
 
+            for (int i = 0; i < 4; i++) {
+                vs[i].x = 1.0f - vs[i].x;
+            }
+
+            for (int i = 0; i < 4; i++) {
+                vs[i].sub(0.5f, 0.5f, 0.5f);        // move to origin
+                rotationMatrix.transform(vs[i]);     // apply rotation
+                vs[i].add(0.5f, 0.5f, 0.5f);        // move back to center
+            }
+
             float uRange = maxUx - minUx, vRange = maxVy - minVy;
             if (uRange == 0 || vRange == 0) continue;
 
@@ -139,7 +165,6 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
             QuadEmitter emitter = context.getEmitter();
             emitter.material(material);
-            emitter.cullFace(Direction.UP); // only if needed
             emitter.nominalFace(Direction.UP); // used for AO and lighting
             emitter.spriteBake(sprite, Direction.UP.get3DDataValue()); // for UV interpolation
 
@@ -191,10 +216,14 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
         }
 
         int[][] faces = {
-                {2, 3, 1, 0}, {4, 5, 7, 6},
-                {0, 1, 5, 4}, {2, 6, 7, 3},
-                {4, 6, 2, 0}, {1, 3, 7, 5}
+                {0, 1, 3, 2}, // BACK (Z-)
+                {6, 7, 5, 4}, // FRONT (Z+)
+                {4, 5, 1, 0}, // TOP (Y+)
+                {2, 3, 7, 6}, // BOTTOM (Y-)
+                {0, 2, 6, 4}, // LEFT (X-)
+                {5, 7, 3, 1}  // RIGHT (X+)
         };
+
         int[][] uvAxes = {
                 {0, 1}, {0, 1}, {0, 2}, {0, 2}, {2, 1}, {2, 1}
         };
@@ -213,6 +242,10 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
                 vs[i] = new Vector3f(corners[face[i]]);
+            }
+
+            for (int i = 0; i < 4; i++) {
+                vs[i].x = 1.0f - vs[i].x;
             }
 
             float[] us = new float[4], vs_ = new float[4];

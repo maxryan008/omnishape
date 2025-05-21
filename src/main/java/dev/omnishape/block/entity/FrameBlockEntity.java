@@ -1,7 +1,5 @@
 package dev.omnishape.block.entity;
 
-import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -14,7 +12,6 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -120,5 +117,4 @@ public class FrameBlockEntity extends BlockEntity {
         }
         return cachedShape;
     }
-
 }

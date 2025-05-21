@@ -1,10 +1,13 @@
 package dev.omnishape.block;
 
+import dev.omnishape.BlockRotation;
+import dev.omnishape.BlockRotationProperty;
 import dev.omnishape.block.entity.FrameBlockEntity;
 import dev.omnishape.registry.OmnishapeComponents;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
@@ -12,6 +15,7 @@ import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.pathfinder.PathComputationType;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -19,13 +23,14 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 
 public class FrameBlock extends Block implements EntityBlock {
+    public static final BlockRotationProperty ROTATION = new BlockRotationProperty("rotation");
+
     public FrameBlock(Properties properties) {
         super(properties);
+        this.registerDefaultState(this.defaultBlockState().setValue(ROTATION, BlockRotation.IDENTITY));
     }
 
     private static final int FRAME_HITBOX_RESOLUTION = 8;
@@ -49,7 +54,6 @@ public class FrameBlock extends Block implements EntityBlock {
         }
 
         be.setChanged();
-        level.updateNeighborsAt(pos, this);
         level.blockUpdated(pos, this);
     }
 
@@ -271,5 +275,21 @@ public class FrameBlock extends Block implements EntityBlock {
     @Override
     protected VoxelShape getOcclusionShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos) {
         return getInteractionShape(blockState, blockGetter, blockPos);
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(ROTATION);
+    }
+
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        BlockRotation rotation = BlockRotation.fromPlacementContext(context);
+        return defaultBlockState().setValue(ROTATION, rotation);
+    }
+
+    @Override
+    public StateDefinition<Block, BlockState> getStateDefinition() {
+        return super.getStateDefinition();
     }
 }
