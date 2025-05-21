@@ -21,6 +21,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -76,7 +77,16 @@ public class FrameBlock extends Block implements EntityBlock {
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         BlockEntity be = level.getBlockEntity(pos);
         if (be instanceof FrameBlockEntity frame) {
-            return frame.getOrBuildShape();
+            BlockRotation rot = state.getValue(FrameBlock.ROTATION);
+
+            Matrix3f rotationMatrix = new Matrix3f()
+                    .rotateXYZ(
+                            (float) Math.toRadians(rot.pitch),
+                            (float) Math.toRadians(rot.yaw),
+                            (float) Math.toRadians(rot.roll)
+                    );
+
+            return frame.getOrBuildShape(rotationMatrix);
         }
         return Shapes.block(); // fallback
     }
@@ -87,15 +97,25 @@ public class FrameBlock extends Block implements EntityBlock {
     }
 
     private static final int[][] FACE_INDICES = {
-            {0, 1, 3, 2}, // Bottom
-            {4, 5, 7, 6}, // Top
-            {0, 2, 6, 4}, // Left
-            {1, 3, 7, 5}, // Right
-            {2, 3, 7, 6}, // Front
-            {0, 1, 5, 4}  // Back
+            {0, 1, 3, 2}, // BACK (Z-)
+            {6, 7, 5, 4}, // FRONT (Z+)
+            {4, 5, 1, 0}, // TOP (Y+)
+            {2, 3, 7, 6}, // BOTTOM (Y-)
+            {0, 2, 6, 4}, // LEFT (X-)
+            {5, 7, 3, 1}  // RIGHT (X+)
     };
 
-    public static VoxelShape generateShapeFromCorners(Vector3f[] corners) {
+    public static VoxelShape generateShapeFromCorners(Vector3f[] corners, Matrix3f rotationMatrix) {
+
+        Vector3f[] rotatedCorners = new Vector3f[8];
+        for (int i = 0; i < corners.length; i++) {
+            rotatedCorners[i] = new Vector3f(corners[i]);
+            rotatedCorners[i].x = 1.0f - rotatedCorners[i].x;  // Apply mirror if needed
+            rotatedCorners[i].sub(0.5f, 0.5f, 0.5f);           // Move to origin
+            rotationMatrix.transform(rotatedCorners[i]);       // Rotate
+            rotatedCorners[i].add(0.5f, 0.5f, 0.5f);           // Move back
+        }
+
         final int RES = FRAME_HITBOX_RESOLUTION;
         final float unit = 1f / RES;
         final float threshold = 0.6f;
@@ -107,8 +127,8 @@ public class FrameBlock extends Block implements EntityBlock {
         // Rasterize surface into a mask (same as before)
         boolean[][][] mask = new boolean[RES][RES][RES];
         for (int[] face : FACE_INDICES) {
-            rasterizeQuad(mask, corners[face[0]], corners[face[1]],
-                    corners[face[2]], corners[face[3]]);
+            rasterizeQuad(mask, rotatedCorners[face[0]], rotatedCorners[face[1]],
+                    rotatedCorners[face[2]], rotatedCorners[face[3]]);
         }
 
         // Check fill ratio for each voxel
@@ -124,7 +144,7 @@ public class FrameBlock extends Block implements EntityBlock {
                                 float sy = y * unit + j * sampleStep + sampleStep / 2;
                                 float sz = z * unit + k * sampleStep + sampleStep / 2;
 
-                                if (pointInsideMesh(sx, sy, sz, corners)) {
+                                if (pointInsideMesh(sx, sy, sz, rotatedCorners)) {
                                     insideCount++;
                                 }
                             }
@@ -262,7 +282,16 @@ public class FrameBlock extends Block implements EntityBlock {
     protected VoxelShape getInteractionShape(BlockState blockState, BlockGetter blockGetter, BlockPos blockPos) {
         BlockEntity be = blockGetter.getBlockEntity(blockPos);
         if (be instanceof FrameBlockEntity frame) {
-            return frame.getOrBuildShape();
+            BlockRotation rot = blockState.getValue(FrameBlock.ROTATION);
+
+            Matrix3f rotationMatrix = new Matrix3f()
+                    .rotateXYZ(
+                            (float) Math.toRadians(rot.pitch),
+                            (float) Math.toRadians(rot.yaw),
+                            (float) Math.toRadians(rot.roll)
+                    );
+
+            return frame.getOrBuildShape(rotationMatrix);
         }
         return Shapes.block(); // fallback
     }

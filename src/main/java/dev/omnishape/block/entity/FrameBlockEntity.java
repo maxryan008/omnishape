@@ -17,6 +17,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import java.util.List;
@@ -111,9 +112,9 @@ public class FrameBlockEntity extends BlockEntity {
         setChanged();
     }
 
-    public VoxelShape getOrBuildShape() {
+    public VoxelShape getOrBuildShape(Matrix3f rotationMatrix) {
         if (cachedShape == null) {
-            cachedShape = FrameBlock.generateShapeFromCorners(corners); // or static method in helper
+            cachedShape = FrameBlock.generateShapeFromCorners(corners, rotationMatrix); // or static method in helper
         }
         return cachedShape;
     }
