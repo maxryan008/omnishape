@@ -19,6 +19,7 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
 
 public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenHandlerFactory {
@@ -55,16 +56,12 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
         this.suppressUpdates = suppress;
     }
 
-    public boolean isSuppressingUpdates() {
-        return suppressUpdates;
-    }
-
     public void clearMenuReference() {
         this.currentMenu = null;
     }
 
     @Override
-    public Component getDisplayName() {
+    public @NotNull Component getDisplayName() {
         return Component.literal("Omnibench");
     }
 
@@ -102,13 +99,17 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
     }
 
     private void sendCornerUpdateToServer(BlockPos pos, int index, Vector3f vec) {
-        // This will be overridden client-side
+        // This should be overridden client side eventually
     }
 
     @Override
     protected void saveAdditional(CompoundTag compoundTag, HolderLookup.Provider provider) {
         super.saveAdditional(compoundTag, provider);
         ContainerHelper.saveAllItems(compoundTag, inventory.getItems(), provider);
+        SaveCorners(compoundTag, corners);
+    }
+
+    static void SaveCorners(CompoundTag compoundTag, Vector3f[] corners) {
         ListTag cornerList = new ListTag();
         for (Vector3f vec : corners) {
             CompoundTag vecTag = new CompoundTag();
@@ -121,7 +122,7 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
         return this.saveWithFullMetadata(provider);
     }
 

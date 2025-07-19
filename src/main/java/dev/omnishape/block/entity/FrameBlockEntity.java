@@ -16,6 +16,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
@@ -64,15 +65,7 @@ public class FrameBlockEntity extends BlockEntity {
     @Override
     protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
         super.saveAdditional(tag, provider);
-        ListTag cornerList = new ListTag();
-        for (Vector3f vec : corners) {
-            CompoundTag vecTag = new CompoundTag();
-            vecTag.putFloat("x", vec.x);
-            vecTag.putFloat("y", vec.y);
-            vecTag.putFloat("z", vec.z);
-            cornerList.add(vecTag);
-        }
-        tag.put("Corners", cornerList);
+        OmnibenchBlockEntity.SaveCorners(tag, corners);
 
         tag.put("Camo", NbtUtils.writeBlockState(camoState));
     }
@@ -89,17 +82,9 @@ public class FrameBlockEntity extends BlockEntity {
     }
 
     @Override
-    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
+    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
         CompoundTag tag = super.getUpdateTag(provider);
-        ListTag cornerList = new ListTag();
-        for (Vector3f vec : corners) {
-            CompoundTag vecTag = new CompoundTag();
-            vecTag.putFloat("x", vec.x);
-            vecTag.putFloat("y", vec.y);
-            vecTag.putFloat("z", vec.z);
-            cornerList.add(vecTag);
-        }
-        tag.put("Corners", cornerList);
+        OmnibenchBlockEntity.SaveCorners(tag, corners);
 
         tag.put("Camo", NbtUtils.writeBlockState(camoState));
         return tag;

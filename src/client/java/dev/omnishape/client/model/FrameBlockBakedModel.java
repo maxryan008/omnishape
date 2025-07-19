@@ -3,6 +3,7 @@ package dev.omnishape.client.model;
 import dev.omnishape.BlockRotation;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.block.entity.FrameBlockEntity;
+import dev.omnishape.client.TextureUtils;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
@@ -25,7 +26,6 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
@@ -34,6 +34,7 @@ import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -47,28 +48,21 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
     @Override
     public void emitBlockQuads(BlockAndTintGetter world, BlockState state, BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
+        // Get the block entity data of the frame block.
         BlockEntity be = (BlockEntity) world.getBlockEntityRenderData(pos);
         if (!(be instanceof FrameBlockEntity frame)) {
             this.wrapped.emitBlockQuads(world, state, pos, randomSupplier, context);
             return;
         }
 
+        // Get frame block corner data
         Vector3f[] corners = frame.getCorners();
-        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
-                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
-        );
-        if (frame.getCamo().getBlock() != Blocks.AIR) {
-            BlockState storedCamo = frame.getCamo();
-            if (storedCamo != null && !storedCamo.isAir()) {
-                camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(storedCamo);
-            }
-        }
-        TextureAtlasSprite sprite = null;
+
+        HashMap<Direction, TextureAtlasSprite> camoSprites = TextureUtils.GetCamoSprites(frame.getCamo());
+
         for (Direction dir : Direction.values()) {
-            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
-            if (!quads.isEmpty()) {
-                sprite = quads.get(0).getSprite();
-                break;
+            if (camoSprites.get(dir) == null) {
+                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
             }
         }
 
@@ -81,35 +75,31 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
                         (float) Math.toRadians(rot.roll)
                 );
 
-        if (sprite == null) {
-            sprite = Minecraft.getInstance().getModelManager().getMissingModel().getParticleIcon();
-        }
-
         int[][] faces = {
-                {0, 1, 3, 2}, // BACK (Z-)
-                {6, 7, 5, 4}, // FRONT (Z+)
                 {4, 5, 1, 0}, // TOP (Y+)
                 {2, 3, 7, 6}, // BOTTOM (Y-)
-                {0, 2, 6, 4}, // LEFT (X-)
-                {5, 7, 3, 1}  // RIGHT (X+)
+                {1, 3, 2, 0}, // NORTH (Z-)
+                {6, 7, 5, 4}, // SOUTH (Z+)
+                {0, 2, 6, 4}, // WEST (X-)
+                {5, 7, 3, 1}  // EAST (X+)
         };
 
         int[][] uvAxes = {
-                {0, 1}, {0, 1}, {0, 2}, {0, 2}, {2, 1}, {2, 1}
+                {0, 2}, {0, 2}, {0, 1}, {0, 1},  {2, 1}, {2, 1}
         };
-
-        float minU = sprite.getU0(), maxU = sprite.getU1();
-        float minV = sprite.getV0(), maxV = sprite.getV1();
-        float diffU = maxU - minU, diffV = maxV - minV;
 
         int[] faceLights = new int[6];
         for (Direction dir : Direction.values()) {
             faceLights[dir.ordinal()] = world.getRawBrightness(pos.relative(dir), 0);
         }
 
-        for (int f = 0; f < 6; f++) {
-            int[] face = faces[f];
-            int uAxis = uvAxes[f][0], vAxis = uvAxes[f][1];
+        for (Direction dir : Direction.values()) {
+            float minU = camoSprites.get(dir).getU0(), maxU = camoSprites.get(dir).getU1();
+            float minV = camoSprites.get(dir).getV0(), maxV = camoSprites.get(dir).getV1();
+            float diffU = maxU - minU, diffV = maxV - minV;
+
+            int[] face = faces[dir.ordinal()];
+            int uAxis = uvAxes[dir.ordinal()][0], vAxis = uvAxes[dir.ordinal()][1];
 
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
@@ -143,14 +133,19 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             float uRange = maxUx - minUx, vRange = maxVy - minVy;
             if (uRange == 0 || vRange == 0) continue;
 
+
             Vector2f[] uvs = new Vector2f[4];
             for (int i = 0; i < 4; i++) {
                 float normU = (us[i] - minUx) / uRange;
                 float normV = (vs_[i] - minVy) / vRange;
+
+                normU = 1.0f - normU;
+                normV = 1.0f - normV;
+
                 uvs[i] = new Vector2f(minU + normU * diffU, minV + normV * diffV);
             }
 
-            int brightness = faceLights[Direction.from3DDataValue(f).ordinal()];
+            int brightness = faceLights[Direction.from3DDataValue(dir.ordinal()).ordinal()];
 
             Renderer renderer = RendererAccess.INSTANCE.getRenderer();
             RenderMaterial material = renderer.materialFinder()
@@ -160,8 +155,8 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
             QuadEmitter emitter = context.getEmitter();
             emitter.material(material);
-            emitter.nominalFace(Direction.UP); // used for AO and lighting
-            emitter.spriteBake(sprite, Direction.UP.get3DDataValue()); // for UV interpolation
+            emitter.nominalFace(dir); // used for AO and lighting
+            emitter.spriteBake(camoSprites.get(dir), dir.get3DDataValue()); // for UV interpolation
 
             // Position and UV are floats, convert using Float.intBitsToFloat(...)
             emitter
@@ -198,41 +193,37 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             }
         }
 
-        TextureAtlasSprite sprite = null;
+        HashMap<Direction, TextureAtlasSprite> camoSprites = TextureUtils.AssembleHashmap(camoModel);
+
         for (Direction dir : Direction.values()) {
-            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
-            if (!quads.isEmpty()) {
-                sprite = quads.get(0).getSprite();
-                break;
+            if (camoSprites.get(dir) == null) {
+                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
             }
-        }
-        if (sprite == null) {
-            sprite = Minecraft.getInstance().getModelManager().getMissingModel().getParticleIcon();
         }
 
         int[][] faces = {
-                {0, 1, 3, 2}, // BACK (Z-)
-                {6, 7, 5, 4}, // FRONT (Z+)
                 {4, 5, 1, 0}, // TOP (Y+)
                 {2, 3, 7, 6}, // BOTTOM (Y-)
-                {0, 2, 6, 4}, // LEFT (X-)
-                {5, 7, 3, 1}  // RIGHT (X+)
+                {1, 3, 2, 0}, // NORTH (Z-)
+                {6, 7, 5, 4}, // SOUTH (Z+)
+                {0, 2, 6, 4}, // WEST (X-)
+                {5, 7, 3, 1}  // EAST (X+)
         };
 
         int[][] uvAxes = {
-                {0, 1}, {0, 1}, {0, 2}, {0, 2}, {2, 1}, {2, 1}
+                {0, 2}, {0, 2}, {0, 1}, {0, 1},  {2, 1}, {2, 1}
         };
-
-        float minU = sprite.getU0(), maxU = sprite.getU1();
-        float minV = sprite.getV0(), maxV = sprite.getV1();
-        float diffU = maxU - minU, diffV = maxV - minV;
 
         Renderer renderer = RendererAccess.INSTANCE.getRenderer();
         RenderMaterial material = renderer.materialFinder().disableDiffuse(false).emissive(false).find();
 
-        for (int f = 0; f < 6; f++) {
-            int[] face = faces[f];
-            int uAxis = uvAxes[f][0], vAxis = uvAxes[f][1];
+        for (Direction dir : Direction.values()) {
+            float minU = camoSprites.get(dir).getU0(), maxU = camoSprites.get(dir).getU1();
+            float minV = camoSprites.get(dir).getV0(), maxV = camoSprites.get(dir).getV1();
+            float diffU = maxU - minU, diffV = maxV - minV;
+
+            int[] face = faces[dir.ordinal()];
+            int uAxis = uvAxes[dir.ordinal()][0], vAxis = uvAxes[dir.ordinal()][1];
 
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
@@ -264,14 +255,18 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             for (int i = 0; i < 4; i++) {
                 float normU = (us[i] - minUx) / uRange;
                 float normV = (vs_[i] - minVy) / vRange;
+
+                normU = 1.0f - normU;
+                normV = 1.0f - normV;
+
                 uvs[i] = new Vector2f(minU + normU * diffU, minV + normV * diffV);
             }
 
             QuadEmitter emitter = context.getEmitter();
             emitter.material(material);
             emitter.cullFace(null); // usually none for items
-            emitter.nominalFace(Direction.UP);
-            emitter.spriteBake(sprite, Direction.UP.get3DDataValue());
+            emitter.nominalFace(dir);
+            emitter.spriteBake(camoSprites.get(dir), dir.get3DDataValue()); // for UV interpolation
 
             emitter
                     .pos(0, vs[0].x, vs[0].y, vs[0].z).uv(0, uvs[0].x, uvs[0].y).color(0, -1)

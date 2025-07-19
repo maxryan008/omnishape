@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.omnishape.Omnishape;
+import dev.omnishape.client.TextureUtils;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
@@ -18,7 +19,6 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
@@ -37,6 +37,8 @@ import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+
+import java.util.HashMap;
 
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private static final ResourceLocation TEXTURE =
@@ -479,20 +481,11 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         BlockState state = block.defaultBlockState();
 
-        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
-                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
-        );
-        if (!state.getBlock().equals(OmnishapeBlocks.FRAME_BLOCK)) {
-            if (!state.isAir()) {
-                camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
-            }
-        }
-        TextureAtlasSprite sprite = null;
+        HashMap<Direction, TextureAtlasSprite> camoSprites = TextureUtils.GetCamoSprites(state);
+
         for (Direction dir : Direction.values()) {
-            var quads = camoModel.getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create());
-            if (!quads.isEmpty()) {
-                sprite = quads.get(0).getSprite();
-                break;
+            if (camoSprites.get(dir) == null) {
+                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
             }
         }
 
@@ -510,7 +503,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         gui.flush(); // flush previous buffer before using direct draw
 
-        RenderSystem.setShaderTexture(0, sprite.atlasLocation());
         RenderSystem.enableDepthTest();
 
         VertexConsumer buffer = gui.bufferSource().getBuffer(RenderType.solid());
@@ -519,36 +511,37 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         // Each face: {corner0, corner1, corner2, corner3}, with matching canonical UVs: (0,0) → (1,0) → (1,1) → (0,1)
         int[][] faces = {
-                {0, 1, 3, 2}, // BACK (Z-)
-                {6, 7, 5, 4}, // FRONT (Z+)
                 {4, 5, 1, 0}, // TOP (Y+)
                 {2, 3, 7, 6}, // BOTTOM (Y-)
-                {0, 2, 6, 4}, // LEFT (X-)
-                {5, 7, 3, 1}  // RIGHT (X+)
+                {1, 3, 2, 0}, // NORTH (Z-)
+                {6, 7, 5, 4}, // SOUTH (Z+)
+                {0, 2, 6, 4}, // WEST (X-)
+                {5, 7, 3, 1}  // EAST (X+)
         };
 
         // For each face, define which corner components map to U/V axes.
         // Format: [U axis index, V axis index] — where 0=x, 1=y, 2=z
         int[][] uvAxes = {
-                {0, 1}, // BACK   → X,Y
-                {0, 1}, // FRONT  → X,Y
-                {0, 2}, // TOP    → X,Z
-                {0, 2}, // BOTTOM → X,Z
+                {0, 2}, // BACK   → X,Y
+                {0, 2}, // FRONT  → X,Y
+                {0, 1}, // TOP    → X,Z
+                {0, 1}, // BOTTOM → X,Z
                 {2, 1}, // LEFT   → Z,Y
                 {2, 1}  // RIGHT  → Z,Y
         };
 
-        float minU = sprite.getU0();
-        float maxU = sprite.getU1();
-        float minV = sprite.getV0();
-        float maxV = sprite.getV1();
-        float diffU = maxU - minU;
-        float diffV = maxV - minV;
+        for (Direction dir : Direction.values()) {
+            //RenderSystem.setShaderTexture(0, camoSprites.get(dir).atlasLocation());
+            float minU = camoSprites.get(dir).getU0();
+            float maxU = camoSprites.get(dir).getU1();
+            float minV = camoSprites.get(dir).getV0();
+            float maxV = camoSprites.get(dir).getV1();
+            float diffU = maxU - minU;
+            float diffV = maxV - minV;
 
-        for (int f = 0; f < faces.length; f++) {
-            int[] face = faces[f];
-            int uAxis = uvAxes[f][0];
-            int vAxis = uvAxes[f][1];
+            int[] face = faces[dir.ordinal()];
+            int uAxis = uvAxes[dir.ordinal()][0];
+            int vAxis = uvAxes[dir.ordinal()][1];
 
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
@@ -583,9 +576,10 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 float normU = (us[i] - minUx) / uRange;
                 float normV = (vs_[i] - minVy) / vRange;
 
-                float u = minU + normU * diffU;
-                float v = minV + normV * diffV;
-                uvs[i] = new Vector2f(u, v);
+                normU = 1.0f - normU;
+                normV = 1.0f - normV;
+
+                uvs[i] = new Vector2f(minU + normU * diffU, minV + normV * diffV);
             }
 
             drawFace(buffer, mat,
