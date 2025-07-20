@@ -1,10 +1,13 @@
 package dev.omnishape.menu;
 
+import com.mojang.math.Vector3f;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.registry.OmnishapeBlocks;
-import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
@@ -14,7 +17,6 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -93,16 +95,25 @@ public class OmnibenchMenu extends AbstractContainerMenu {
                 internal.setItem(NEW_SLOT, decrement(internal.getItem(NEW_SLOT), itemStack.getCount()));
                 internal.setItem(CAMO_SLOT, decrement(internal.getItem(CAMO_SLOT), itemStack.getCount()));
 
-                BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
-                itemStack.set(OmnishapeComponents.CAMO_STATE, camoState);
+                // Write NBT data to output item
+                CompoundTag tag = itemStack.getOrCreateTag();
 
+                // Write camo block state
+                BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
+                tag.put("CamoState", NbtUtils.writeBlockState(camoState));
+
+                // Write corners if applicable
                 if (menuBlockEntity != null) {
                     Vector3f[] original = menuBlockEntity.getCorners();
-                    List<Vector3f> cornerList = new java.util.ArrayList<>();
+                    ListTag cornerList = new ListTag();
                     for (Vector3f v : original) {
-                        cornerList.add(new Vector3f(v)); // copy
+                        CompoundTag vecTag = new CompoundTag();
+                        vecTag.putFloat("x", v.x());
+                        vecTag.putFloat("y", v.y());
+                        vecTag.putFloat("z", v.z());
+                        cornerList.add(vecTag);
                     }
-                    itemStack.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+                    tag.put("CornersState", cornerList);
                 }
 
                 super.onTake(player, itemStack);
@@ -146,16 +157,26 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         }
 
         ItemStack output = new ItemStack(newFrame.getItem(), count);
-        BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
-        output.set(OmnishapeComponents.CAMO_STATE, camoState);
+        CompoundTag tag = output.getOrCreateTag();
 
+        // Write camo block state
+        if (!camo.isEmpty()) {
+            BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
+            tag.put("CamoState", NbtUtils.writeBlockState(camoState));
+        }
+
+        // Write corners
         if (menuBlockEntity != null) {
             Vector3f[] original = menuBlockEntity.getCorners();
-            List<Vector3f> cornerList = new java.util.ArrayList<>();
+            ListTag cornerList = new ListTag();
             for (Vector3f v : original) {
-                cornerList.add(new Vector3f(v)); // copy
+                CompoundTag vecTag = new CompoundTag();
+                vecTag.putFloat("x", v.x());
+                vecTag.putFloat("y", v.y());
+                vecTag.putFloat("z", v.z());
+                cornerList.add(vecTag);
             }
-            output.set(OmnishapeComponents.CORNERS_STATE, cornerList);
+            tag.put("CornersState", cornerList);
         }
 
         suppressedSetItem(OUTPUT_SLOT, output);
@@ -209,7 +230,7 @@ public class OmnibenchMenu extends AbstractContainerMenu {
                 }
             }
 
-            if (stack.isEmpty()) slot.setByPlayer(ItemStack.EMPTY);
+            if (stack.isEmpty()) slot.set(ItemStack.EMPTY);
             else slot.setChanged();
 
             slot.onTake(player, stack);

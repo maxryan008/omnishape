@@ -1,6 +1,5 @@
 package dev.omnishape.client.mixin;
 
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
@@ -36,7 +35,4 @@ public interface AbstractContainerScreenAccessor {
 
     @Accessor("snapbackStartY")
     int getSnapbackStartY();
-
-    @Invoker("renderFloatingItem")
-    void callRenderFloatingItem(GuiGraphics graphics, ItemStack stack, int x, int y, String countText);
 }

@@ -4,32 +4,34 @@ import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.menu.OmnibenchMenu;
 import dev.omnishape.network.packet.SetCornerC2SPacket;
 import dev.omnishape.network.packet.SyncCornersS2CPacket;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import io.netty.buffer.Unpooled;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.entity.BlockEntity;
 
 public class OmnishapePackets {
     public static void registerC2SPackets() {
-        PayloadTypeRegistry.playS2C().register(SyncCornersS2CPacket.TYPE, SyncCornersS2CPacket.CODEC);
-        PayloadTypeRegistry.playC2S().register(SetCornerC2SPacket.TYPE, SetCornerC2SPacket.CODEC);
-        ServerPlayNetworking.registerGlobalReceiver(SetCornerC2SPacket.TYPE, (packet, context) ->
-                context.server().execute(() -> {
-                    var level = context.player().serverLevel();
-                    var be = level.getBlockEntity(packet.pos());
-                    if (be instanceof OmnibenchBlockEntity omnibench) {
-                        omnibench.setCorner(packet.index(), packet.vec());
-                        omnibench.setChanged();
+        ServerPlayNetworking.registerGlobalReceiver(SetCornerC2SPacket.ID, (server, player, handler, buf, responseSender) -> {
+            SetCornerC2SPacket packet = SetCornerC2SPacket.read(buf);
 
-                        // Broadcast to all watching clients
-                        SyncCornersS2CPacket syncPacket = new SyncCornersS2CPacket(packet.pos(), omnibench.getCorners());
-                        for (ServerPlayer player : level.players()) {
-                            if (player.containerMenu instanceof OmnibenchMenu menu &&
-                                    menu.getBlockEntity() == omnibench) {
-                                ServerPlayNetworking.send(player, syncPacket);
-                            }
+            server.execute(() -> {
+                BlockEntity be = player.getLevel().getBlockEntity(packet.pos());
+                if (be instanceof OmnibenchBlockEntity omnibench) {
+                    omnibench.setCorner(packet.index(), packet.vec());
+                    omnibench.setChanged();
+
+                    // Sync back to all watching players with OmnibenchMenu open
+                    SyncCornersS2CPacket syncPacket = new SyncCornersS2CPacket(packet.pos(), omnibench.getCorners());
+                    for (ServerPlayer p : player.server.getPlayerList().getPlayers()) {
+                        if (p.containerMenu instanceof OmnibenchMenu menu && menu.getBlockEntity() == omnibench) {
+                            FriendlyByteBuf buf2 = new FriendlyByteBuf(Unpooled.buffer());
+                            new SyncCornersS2CPacket(packet.pos(), omnibench.getCorners()).write(buf2);
+                            ServerPlayNetworking.send(p, SyncCornersS2CPacket.ID, buf2);
                         }
                     }
-                })
-        );
+                }
+            });
+        });
     }
 }

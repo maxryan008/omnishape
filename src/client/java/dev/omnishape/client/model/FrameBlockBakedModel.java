@@ -1,41 +1,45 @@
 package dev.omnishape.client.model;
 
+import com.mojang.math.Matrix3f;
+import com.mojang.math.Vector3f;
 import dev.omnishape.BlockRotation;
+import dev.omnishape.Vector2f;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.block.entity.FrameBlockEntity;
 import dev.omnishape.client.TextureUtils;
 import dev.omnishape.registry.OmnishapeBlocks;
-import dev.omnishape.registry.OmnishapeComponents;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 import net.fabricmc.fabric.api.renderer.v1.RendererAccess;
 import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;
+import net.fabricmc.fabric.api.renderer.v1.model.FabricBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.block.model.ItemOverrides;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
+import net.minecraft.client.renderer.block.model.*;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.resources.model.ModelBakery;
+import net.minecraft.client.resources.model.ModelResourceLocation;
+import net.minecraft.client.resources.model.UnbakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix3f;
-import org.joml.Vector2f;
-import org.joml.Vector3f;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class FrameBlockBakedModel extends ForwardingBakedModel {
@@ -47,11 +51,13 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
     }
 
     @Override
-    public void emitBlockQuads(BlockAndTintGetter world, BlockState state, BlockPos pos, Supplier<RandomSource> randomSupplier, RenderContext context) {
+    public void emitBlockQuads(BlockAndTintGetter blockView, BlockState state, BlockPos pos, Supplier<Random> randomSupplier, RenderContext context) {
         // Get the block entity data of the frame block.
-        BlockEntity be = (BlockEntity) world.getBlockEntityRenderData(pos);
+        BlockEntity be = blockView.getBlockEntity(pos);
         if (!(be instanceof FrameBlockEntity frame)) {
-            this.wrapped.emitBlockQuads(world, state, pos, randomSupplier, context);
+            if (this.wrapped instanceof FabricBakedModel fabricModel) {
+                fabricModel.emitBlockQuads(blockView, state, pos, randomSupplier, context);
+            }
             return;
         }
 
@@ -62,18 +68,24 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
         for (Direction dir : Direction.values()) {
             if (camoSprites.get(dir) == null) {
-                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
+                List<BakedQuad> quads = Minecraft.getInstance()
+                        .getBlockRenderer()
+                        .getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState())
+                        .getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, new Random());
+
+                if (!quads.isEmpty()) {
+                    camoSprites.put(dir, quads.get(0).getSprite());
+                }
             }
         }
 
         BlockRotation rot = state.getValue(FrameBlock.ROTATION);
 
-        Matrix3f rotationMatrix = new Matrix3f()
-                .rotateXYZ(
-                        (float) Math.toRadians(rot.pitch),
-                        (float) Math.toRadians(rot.yaw),
-                        (float) Math.toRadians(rot.roll)
-                );
+        Matrix3f rotationMatrix = Matrix3f.createScaleMatrix(
+                (float) Math.toRadians(rot.pitch),
+                (float) Math.toRadians(rot.yaw),
+                (float) Math.toRadians(rot.roll)
+        );
 
         int[][] faces = {
                 {4, 5, 1, 0}, // TOP (Y+)
@@ -90,7 +102,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
         int[] faceLights = new int[6];
         for (Direction dir : Direction.values()) {
-            faceLights[dir.ordinal()] = world.getRawBrightness(pos.relative(dir), 0);
+            faceLights[dir.ordinal()] = blockView.getRawBrightness(pos.relative(dir), 0);
         }
 
         for (Direction dir : Direction.values()) {
@@ -103,7 +115,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
-                vs[i] = new Vector3f(corners[face[i]]);
+                vs[i] = corners[face[i]];
             }
 
             float[] us = new float[4], vs_ = new float[4];
@@ -111,7 +123,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             float minVy = Float.MAX_VALUE, maxVy = -Float.MAX_VALUE;
 
             for (int i = 0; i < 4; i++) {
-                float[] xyz = {vs[i].x, vs[i].y, vs[i].z};
+                float[] xyz = {vs[i].x(), vs[i].y(), vs[i].z()};
                 us[i] = xyz[uAxis];
                 vs_[i] = xyz[vAxis];
                 minUx = Math.min(minUx, us[i]);
@@ -121,12 +133,12 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             }
 
             for (int i = 0; i < 4; i++) {
-                vs[i].x = 1.0f - vs[i].x;
+                vs[i].set(1.0f - vs[i].x(), vs[i].y(), vs[i].z());
             }
 
             for (int i = 0; i < 4; i++) {
-                vs[i].sub(0.5f, 0.5f, 0.5f);        // move to origin
-                rotationMatrix.transform(vs[i]);     // apply rotation
+                vs[i].sub(new Vector3f(0.5f, 0.5f, 0.5f));        // move to origin
+                vs[i].transform(rotationMatrix);     // apply rotation
                 vs[i].add(0.5f, 0.5f, 0.5f);        // move back to center
             }
 
@@ -149,46 +161,53 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
             Renderer renderer = RendererAccess.INSTANCE.getRenderer();
             RenderMaterial material = renderer.materialFinder()
-                    .disableDiffuse(false)  // true disables AO
-                    .emissive(false)
+                    .disableDiffuse(0, false)  // true disables AO
+                    .emissive(0, false)
                     .find();
 
             QuadEmitter emitter = context.getEmitter();
             emitter.material(material);
             emitter.nominalFace(dir); // used for AO and lighting
-            emitter.spriteBake(camoSprites.get(dir), dir.get3DDataValue()); // for UV interpolation
-
+            emitter.spriteBake(0, camoSprites.get(dir), QuadEmitter.BAKE_LOCK_UV);
             // Position and UV are floats, convert using Float.intBitsToFloat(...)
             emitter
-                    .pos(0, vs[0].x, vs[0].y, vs[0].z).uv(0, uvs[0].x, uvs[0].y).lightmap(0, brightness).color(0, -1)
-                    .pos(1, vs[1].x, vs[1].y, vs[1].z).uv(1, uvs[1].x, uvs[1].y).lightmap(1, brightness).color(1, -1)
-                    .pos(2, vs[2].x, vs[2].y, vs[2].z).uv(2, uvs[2].x, uvs[2].y).lightmap(2, brightness).color(2, -1)
-                    .pos(3, vs[3].x, vs[3].y, vs[3].z).uv(3, uvs[3].x, uvs[3].y).lightmap(3, brightness).color(3, -1)
+                    .pos(0, vs[0].x(), vs[0].y(), vs[0].z()).sprite(0, 0, uvs[0].x, uvs[0].y).lightmap(0, brightness).spriteColor(0, 0, -1)
+                    .pos(1, vs[1].x(), vs[1].y(), vs[1].z()).sprite(1, 0, uvs[1].x, uvs[1].y).lightmap(1, brightness).spriteColor(1, 0, -1)
+                    .pos(2, vs[2].x(), vs[2].y(), vs[2].z()).sprite(2, 0, uvs[2].x, uvs[2].y).lightmap(2, brightness).spriteColor(2, 0, -1)
+                    .pos(3, vs[3].x(), vs[3].y(), vs[3].z()).sprite(3, 0, uvs[3].x, uvs[3].y).lightmap(3, brightness).spriteColor(3, 0, -1)
                     .emit();
         }
     }
 
     @Override
-    public void emitItemQuads(ItemStack stack, Supplier<RandomSource> randomSupplier, RenderContext context) {
-        // Fallback values if data isn't attached
+    public void emitItemQuads(ItemStack stack, Supplier<Random> randomSupplier, RenderContext context) {
+        // Fallback cube if no data
         Vector3f[] corners = new Vector3f[8];
-        for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+        for (int i = 0; i < 8; i++) {
+            corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
+        }
 
         BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
-                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
+                new ModelResourceLocation("omnishape", "block/frame_block_default")
         );
-        DataComponentMap components = stack.getComponents();
-        if (!components.isEmpty()) {
-            if (components.has(OmnishapeComponents.CORNERS_STATE)) {
-                List<Vector3f> storedCorners = components.get(OmnishapeComponents.CORNERS_STATE);
-                if (storedCorners != null && storedCorners.size() == 8) {
-                    corners = storedCorners.toArray(Vector3f[]::new);
+
+        // Load NBT data
+        CompoundTag tag = stack.getTag();
+        if (tag != null) {
+            if (tag.contains("CornersState", Tag.TAG_LIST)) {
+                ListTag cornerList = tag.getList("CornersState", Tag.TAG_COMPOUND);
+                if (cornerList.size() == 8) {
+                    for (int i = 0; i < 8; i++) {
+                        CompoundTag vecTag = cornerList.getCompound(i);
+                        corners[i].set(vecTag.getFloat("x"), vecTag.getFloat("y"), vecTag.getFloat("z"));
+                    }
                 }
             }
-            if (components.has(OmnishapeComponents.CAMO_STATE)) {
-                BlockState storedCamo = components.get(OmnishapeComponents.CAMO_STATE);
-                if (storedCamo != null && !storedCamo.isAir()) {
-                    camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(storedCamo);
+
+            if (tag.contains("CamoState", Tag.TAG_COMPOUND)) {
+                BlockState camoState = NbtUtils.readBlockState(tag.getCompound("CamoState"));
+                if (camoState != null && !camoState.isAir()) {
+                    camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(camoState);
                 }
             }
         }
@@ -197,7 +216,14 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
         for (Direction dir : Direction.values()) {
             if (camoSprites.get(dir) == null) {
-                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
+                List<BakedQuad> quads = Minecraft.getInstance()
+                        .getBlockRenderer()
+                        .getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState())
+                        .getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, new Random());
+
+                if (!quads.isEmpty()) {
+                    camoSprites.put(dir, quads.get(0).getSprite());
+                }
             }
         }
 
@@ -211,11 +237,11 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
         };
 
         int[][] uvAxes = {
-                {0, 2}, {0, 2}, {0, 1}, {0, 1},  {2, 1}, {2, 1}
+                {0, 2}, {0, 2}, {0, 1}, {0, 1}, {2, 1}, {2, 1}
         };
 
         Renderer renderer = RendererAccess.INSTANCE.getRenderer();
-        RenderMaterial material = renderer.materialFinder().disableDiffuse(false).emissive(false).find();
+        RenderMaterial material = renderer.materialFinder().disableDiffuse(0, false).emissive(0, false).find();
 
         for (Direction dir : Direction.values()) {
             float minU = camoSprites.get(dir).getU0(), maxU = camoSprites.get(dir).getU1();
@@ -227,11 +253,11 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
             Vector3f[] vs = new Vector3f[4];
             for (int i = 0; i < 4; i++) {
-                vs[i] = new Vector3f(corners[face[i]]);
+                vs[i] = corners[face[i]];
             }
 
             for (int i = 0; i < 4; i++) {
-                vs[i].x = 1.0f - vs[i].x;
+                vs[i].set(1.0f - vs[i].x(), vs[i].y(), vs[i].z());
             }
 
             float[] us = new float[4], vs_ = new float[4];
@@ -239,7 +265,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             float minVy = Float.MAX_VALUE, maxVy = -Float.MAX_VALUE;
 
             for (int i = 0; i < 4; i++) {
-                float[] xyz = {vs[i].x, vs[i].y, vs[i].z};
+                float[] xyz = {vs[i].x(), vs[i].y(), vs[i].z()};
                 us[i] = xyz[uAxis];
                 vs_[i] = xyz[vAxis];
                 minUx = Math.min(minUx, us[i]);
@@ -255,24 +281,22 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             for (int i = 0; i < 4; i++) {
                 float normU = (us[i] - minUx) / uRange;
                 float normV = (vs_[i] - minVy) / vRange;
-
                 normU = 1.0f - normU;
                 normV = 1.0f - normV;
-
                 uvs[i] = new Vector2f(minU + normU * diffU, minV + normV * diffV);
             }
 
             QuadEmitter emitter = context.getEmitter();
             emitter.material(material);
-            emitter.cullFace(null); // usually none for items
+            emitter.cullFace(null);
             emitter.nominalFace(dir);
-            emitter.spriteBake(camoSprites.get(dir), dir.get3DDataValue()); // for UV interpolation
+            emitter.spriteBake(0, camoSprites.get(dir), QuadEmitter.BAKE_LOCK_UV);
 
             emitter
-                    .pos(0, vs[0].x, vs[0].y, vs[0].z).uv(0, uvs[0].x, uvs[0].y).color(0, -1)
-                    .pos(1, vs[1].x, vs[1].y, vs[1].z).uv(1, uvs[1].x, uvs[1].y).color(1, -1)
-                    .pos(2, vs[2].x, vs[2].y, vs[2].z).uv(2, uvs[2].x, uvs[2].y).color(2, -1)
-                    .pos(3, vs[3].x, vs[3].y, vs[3].z).uv(3, uvs[3].x, uvs[3].y).color(3, -1)
+                    .pos(0, vs[0].x(), vs[0].y(), vs[0].z()).sprite(0, 0, uvs[0].x, uvs[0].y).spriteColor(0, 0, -1)
+                    .pos(1, vs[1].x(), vs[1].y(), vs[1].z()).sprite(1, 0, uvs[1].x, uvs[1].y).spriteColor(1, 0, -1)
+                    .pos(2, vs[2].x(), vs[2].y(), vs[2].z()).sprite(2, 0, uvs[2].x, uvs[2].y).spriteColor(2, 0, -1)
+                    .pos(3, vs[3].x(), vs[3].y(), vs[3].z()).sprite(3, 0, uvs[3].x, uvs[3].y).spriteColor(3, 0, -1)
                     .emit();
         }
     }
@@ -312,14 +336,9 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
         return itemOverride;
     }
 
-    @Override
-    public BakedModel getWrappedModel() {
-        return wrapped;
-    }
-
     public class FrameOverride extends ItemOverrides {
-        public FrameOverride() {
-            super(null, null, Collections.emptyList());
+        public FrameOverride(ModelBakery modelBakery, BlockModel blockModel, Function<ResourceLocation, UnbakedModel> function, List<ItemOverride> list) {
+            super(modelBakery, blockModel, function, list);
         }
 
         @Override

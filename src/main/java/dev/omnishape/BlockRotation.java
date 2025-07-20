@@ -1,12 +1,12 @@
 package dev.omnishape;
 
+import com.mojang.math.Vector3f;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
 
 public class BlockRotation implements Comparable<BlockRotation> {
     public static final BlockRotation IDENTITY = new BlockRotation(0, 0, 0);
@@ -24,7 +24,7 @@ public class BlockRotation implements Comparable<BlockRotation> {
     public static BlockRotation fromPlacementContext(BlockPlaceContext ctx) {
         Direction face = ctx.getClickedFace(); // Face the player clicked (bottom of block)
         Vec3 playerPos = ctx.getPlayer().position();
-        Vec3 blockCenter = ctx.getClickedPos().getCenter();
+        Vec3 blockCenter = Vec3.atCenterOf(ctx.getClickedPos());
         Vec3 toPlayer = playerPos.subtract(blockCenter);
 
         int pitch = 0, yaw = 0, roll = 0;

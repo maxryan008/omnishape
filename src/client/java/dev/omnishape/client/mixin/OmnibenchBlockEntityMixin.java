@@ -1,10 +1,10 @@
 package dev.omnishape.client.mixin;
 
+import com.mojang.math.Vector3f;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.client.ClientHooks;
 import dev.omnishape.client.interfaces.ClientCornerSync;
 import net.minecraft.core.BlockPos;
-import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 
 @Mixin(OmnibenchBlockEntity.class)

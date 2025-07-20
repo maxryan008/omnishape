@@ -3,35 +3,28 @@ package dev.omnishape;
 import dev.omnishape.network.OmnishapePackets;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import dev.omnishape.registry.OmnishapeBlocks;
-import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.client.itemgroup.FabricItemGroupBuilder;
+import net.fabricmc.fabric.impl.item.group.ItemGroupExtensions;
+import net.minecraft.core.NonNullList;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTabs;
+import net.minecraft.world.item.CreativeModeTab;
+
+import java.util.List;
 
 public class Omnishape implements ModInitializer {
 
     public static final String MOD_ID = "omnishape";
-
-    public static ResourceLocation id(String id) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, id);
-    }
 
     @Override
     public void onInitialize() {
         OmnishapeBlocks.register();
         OmnishapeBlockEntities.register();
         OmnishapeMenus.register();
-        OmnishapeComponents.register();
         OmnishapePackets.registerC2SPackets();
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
-            entries.accept(OmnishapeBlocks.OMNIBENCH);
-        });
-
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.BUILDING_BLOCKS).register(entries -> {
-            entries.accept(OmnishapeBlocks.FRAME_BLOCK);
-        });
+        CreativeModeTab.TAB_MISC.fillItemList(NonNullList.of(OmnishapeBlocks.OMNIBENCH.asItem().getDefaultInstance()));
+        CreativeModeTab.TAB_BUILDING_BLOCKS.fillItemList(NonNullList.of(OmnishapeBlocks.FRAME_BLOCK.asItem().getDefaultInstance()));
     }
 }

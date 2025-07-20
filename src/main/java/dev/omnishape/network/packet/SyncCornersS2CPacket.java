@@ -1,27 +1,21 @@
 package dev.omnishape.network.packet;
 
-import dev.omnishape.Omnishape;
+import com.mojang.math.Vector3f;
+import dev.omnishape.Constant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import org.jetbrains.annotations.NotNull;
-import org.joml.Vector3f;
+import net.minecraft.resources.ResourceLocation;
 
-public record SyncCornersS2CPacket(BlockPos pos, Vector3f[] corners) implements CustomPacketPayload {
-    public static final Type<SyncCornersS2CPacket> TYPE =
-            new Type<>(Omnishape.id("sync_corners_s2c"));
+public record SyncCornersS2CPacket(BlockPos pos, Vector3f[] corners) {
+    public static final ResourceLocation ID = Constant.id("sync_corners_s2c");
 
-    public static final StreamCodec<FriendlyByteBuf, SyncCornersS2CPacket> CODEC =
-            StreamCodec.of(SyncCornersS2CPacket::write, SyncCornersS2CPacket::read);
-
-    public static void write(FriendlyByteBuf buf, SyncCornersS2CPacket packet) {
-        buf.writeBlockPos(packet.pos);
-        buf.writeVarInt(packet.corners.length);
-        for (Vector3f vec : packet.corners) {
-            buf.writeFloat(vec.x);
-            buf.writeFloat(vec.y);
-            buf.writeFloat(vec.z);
+    public void write(FriendlyByteBuf buf) {
+        buf.writeBlockPos(pos);
+        buf.writeVarInt(corners.length);
+        for (Vector3f vec : corners) {
+            buf.writeFloat(vec.x());
+            buf.writeFloat(vec.y());
+            buf.writeFloat(vec.z());
         }
     }
 
@@ -33,10 +27,5 @@ public record SyncCornersS2CPacket(BlockPos pos, Vector3f[] corners) implements 
             corners[i] = new Vector3f(buf.readFloat(), buf.readFloat(), buf.readFloat());
         }
         return new SyncCornersS2CPacket(pos, corners);
-    }
-
-    @Override
-    public @NotNull Type<? extends CustomPacketPayload> type() {
-        return TYPE;
     }
 }

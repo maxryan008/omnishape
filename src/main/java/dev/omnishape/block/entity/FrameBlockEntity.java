@@ -1,10 +1,10 @@
 package dev.omnishape.block.entity;
 
+import com.mojang.math.Matrix3f;
+import com.mojang.math.Vector3f;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderLookup;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
@@ -16,10 +16,6 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix3f;
-import org.joml.Vector3f;
 
 import java.util.List;
 
@@ -30,11 +26,6 @@ public class FrameBlockEntity extends BlockEntity {
     public FrameBlockEntity(BlockPos pos, BlockState state) {
         super(OmnishapeBlockEntities.FRAME_BLOCK, pos, state);
         for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
-    }
-
-    @Override
-    public @Nullable Object getRenderData() {
-        return this;
     }
 
     public BlockState getCamo() {
@@ -51,7 +42,7 @@ public class FrameBlockEntity extends BlockEntity {
 
     public void setCorners(List<Vector3f> corners) {
         for (int i = 0; i < Math.min(this.corners.length, corners.size()); i++) {
-            this.corners[i] = new Vector3f(corners.get(i));
+            this.corners[i] = corners.get(i);
         }
         this.cachedShape = null; // invalidate cache
         setChanged();
@@ -63,27 +54,27 @@ public class FrameBlockEntity extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        super.saveAdditional(tag, provider);
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
         OmnibenchBlockEntity.SaveCorners(tag, corners);
 
         tag.put("Camo", NbtUtils.writeBlockState(camoState));
     }
 
     @Override
-    protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
+    public void load(CompoundTag tag) {
         ListTag list = tag.getList("Corners", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size() && i < 8; i++) {
             CompoundTag vecTag = list.getCompound(i);
             corners[i] = new Vector3f(vecTag.getFloat("x"), vecTag.getFloat("y"), vecTag.getFloat("z"));
         }
 
-        camoState = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("Camo"));
+        camoState = NbtUtils.readBlockState(tag.getCompound("Camo"));
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag(HolderLookup.Provider provider) {
-        CompoundTag tag = super.getUpdateTag(provider);
+    public CompoundTag getUpdateTag() {
+        CompoundTag tag = super.getUpdateTag();
         OmnibenchBlockEntity.SaveCorners(tag, corners);
 
         tag.put("Camo", NbtUtils.writeBlockState(camoState));
