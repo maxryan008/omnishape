@@ -158,4 +158,27 @@ public record OmnishapeData(BlockState camouflage, Vector3f[] corners) {
                 a.z + (b.z - a.z) * t
         );
     }
+
+    /**
+     * Returns the destroy speed (mining speed) of the camouflage block.
+     * This is used for calculating how long it takes to mine the frame.
+     */
+    public float getDestroySpeed() {
+        return this.camouflage.getDestroySpeed(null, null);
+    }
+
+    /**
+     * Returns the explosion resistance (blast resistance) of the camouflage block.
+     */
+    public float getExplosionResistance() {
+        return this.camouflage.getBlock().getExplosionResistance();
+    }
+
+    public static float getDestroySpeed(OmnishapeData data) {
+        return data.camouflage().getDestroySpeed(null, null);
+    }
+
+    public static float getExplosionResistance(OmnishapeData data) {
+        return data.camouflage().getBlock().getExplosionResistance();
+    }
 }

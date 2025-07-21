@@ -4,7 +4,6 @@
     import dev.omnishape.BlockRotationProperty;
     import dev.omnishape.api.OmnishapeData;
     import dev.omnishape.block.entity.FrameBlockEntity;
-    import dev.omnishape.registry.OmnishapeComponents;
     import net.minecraft.core.BlockPos;
     import net.minecraft.world.entity.LivingEntity;
     import net.minecraft.world.item.ItemStack;
@@ -14,7 +13,6 @@
     import net.minecraft.world.level.LevelReader;
     import net.minecraft.world.level.block.Block;
     import net.minecraft.world.level.block.EntityBlock;
-    import net.minecraft.world.level.block.RenderShape;
     import net.minecraft.world.level.block.entity.BlockEntity;
     import net.minecraft.world.level.block.state.BlockState;
     import net.minecraft.world.level.block.state.StateDefinition;
@@ -26,7 +24,6 @@
     import net.minecraft.world.phys.shapes.VoxelShape;
     import org.jetbrains.annotations.Nullable;
     import org.joml.Matrix3f;
-    import org.joml.Vector3f;
 
     import java.util.List;
 
