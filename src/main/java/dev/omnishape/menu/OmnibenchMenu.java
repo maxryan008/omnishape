@@ -65,7 +65,7 @@ public class OmnibenchMenu extends AbstractContainerMenu {
         this.addSlot(new Slot(internal, REF_SLOT, 211, 197) {
             @Override
             public boolean mayPlace(ItemStack itemStack) {
-                return isFrameBlock(itemStack) && itemStack.getCount() == 1;
+                return isFrameBlock(itemStack);
             }
 
             @Override
