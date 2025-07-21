@@ -1,22 +1,28 @@
 package dev.omnishape.menu;
 
+import com.mojang.datafixers.util.Pair;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
 import java.util.List;
+
+import static dev.omnishape.Omnishape.id;
 
 public class OmnibenchMenu extends AbstractContainerMenu {
 
@@ -28,6 +34,9 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     public static final int PLAYER_INV_SLOT_END = 40;
     public static final int HOTBAR_SLOT_START = 31;
     public static final int HOTBAR_SLOT_END = 40;
+    private static final Pair<ResourceLocation, ResourceLocation> REF_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/reference"));
+    private static final Pair<ResourceLocation, ResourceLocation> NEW_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/frame"));
+    private static final Pair<ResourceLocation, ResourceLocation> CAMO_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/camoflauge"));
     private final Container internal;
     private final OmnibenchBlockEntity menuBlockEntity;
 
@@ -60,6 +69,12 @@ public class OmnibenchMenu extends AbstractContainerMenu {
                 return isFrameBlock(itemStack);
             }
 
+            @Nullable
+            @Override
+            public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+                return REF_ICON;
+            }
+
             @Override
             public int getMaxStackSize() {
                 return 1;
@@ -71,12 +86,24 @@ public class OmnibenchMenu extends AbstractContainerMenu {
             public boolean mayPlace(ItemStack itemStack) {
                 return isFrameBlock(itemStack);
             }
+
+            @Nullable
+            @Override
+            public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+                return NEW_ICON;
+            }
         });
 
         this.addSlot(new Slot(internal, CAMO_SLOT, 255, 197) {
             @Override
             public boolean mayPlace(ItemStack itemStack) {
                 return isRenderableBlock(itemStack);
+            }
+
+            @Nullable
+            @Override
+            public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
+                return CAMO_ICON;
             }
         });
 
