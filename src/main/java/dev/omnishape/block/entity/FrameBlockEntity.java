@@ -1,5 +1,6 @@
 package dev.omnishape.block.entity;
 
+import dev.omnishape.api.OmnishapeData;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import net.minecraft.core.BlockPos;
@@ -97,8 +98,22 @@ public class FrameBlockEntity extends BlockEntity {
 
     public VoxelShape getOrBuildShape(Matrix3f rotationMatrix) {
         if (cachedShape == null) {
-            cachedShape = FrameBlock.generateShapeFromCorners(corners, rotationMatrix); // or static method in helper
+            cachedShape = OmnishapeData.generateVoxelShape(corners, rotationMatrix);
         }
         return cachedShape;
+    }
+
+    public @Nullable dev.omnishape.api.OmnishapeData getData() {
+        return new dev.omnishape.api.OmnishapeData(this.camoState, this.corners);
+    }
+
+    public void setData(dev.omnishape.api.OmnishapeData data) {
+        this.camoState = data.camouflage();
+        Vector3f[] from = data.corners();
+        for (int i = 0; i < this.corners.length; i++) {
+            this.corners[i] = new Vector3f(from[i]);
+        }
+        this.cachedShape = null;
+        this.setChanged();
     }
 }
