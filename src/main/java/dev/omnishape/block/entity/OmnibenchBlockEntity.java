@@ -99,7 +99,7 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
         }
     }
 
-    private void sendCornerUpdateToServer(BlockPos pos, int index, Vector3f vec) {
+    public void sendCornerUpdateToServer(BlockPos pos, int index, Vector3f vec) {
         // This should be overridden client side eventually
     }
 
