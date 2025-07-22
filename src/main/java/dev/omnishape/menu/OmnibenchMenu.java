@@ -180,7 +180,7 @@ public class OmnibenchMenu extends AbstractContainerMenu {
             count = Math.min(newFrame.getCount(), camo.getCount());
         }
 
-        ItemStack output = new ItemStack(newFrame.getItem(), count);
+        ItemStack output = new ItemStack(newFrame.getItem(), 1);
         BlockState camoState = Block.byItem(camo.getItem()).defaultBlockState();
         output.set(OmnishapeComponents.CAMO_STATE, camoState);
 
