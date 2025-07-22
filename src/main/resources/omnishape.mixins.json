@@ -4,7 +4,8 @@
   "package": "dev.omnishape.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "AbstractContainerMenuMixin"
+    "AbstractContainerMenuMixin",
+    "ExplosionDamageCalculatorMixin"
   ],
   "injectors": {
     "defaultRequire": 1
