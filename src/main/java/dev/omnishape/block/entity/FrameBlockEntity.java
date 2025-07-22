@@ -103,11 +103,11 @@ public class FrameBlockEntity extends BlockEntity {
         return cachedShape;
     }
 
-    public @Nullable dev.omnishape.api.OmnishapeData getData() {
-        return new dev.omnishape.api.OmnishapeData(this.camoState, this.corners);
+    public @Nullable OmnishapeData getData() {
+        return new OmnishapeData(this.camoState, this.corners);
     }
 
-    public void setData(dev.omnishape.api.OmnishapeData data) {
+    public void setData(OmnishapeData data) {
         this.camoState = data.camouflage();
         Vector3f[] from = data.corners();
         for (int i = 0; i < this.corners.length; i++) {

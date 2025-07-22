@@ -3,6 +3,7 @@ package dev.omnishape.api;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -19,7 +20,7 @@ public record OmnishapeData(BlockState camouflage, Vector3f[] corners) {
 
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
-        tag.put("Camo", BlockState.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, this.camouflage())
+        tag.put("Camo", BlockState.CODEC.encodeStart(NbtOps.INSTANCE, this.camouflage())
                 .result().orElseThrow(() -> new IllegalStateException("Failed to encode blockstate")));
         var cornerList = new net.minecraft.nbt.ListTag();
         for (Vector3f vec : corners) {
@@ -34,7 +35,7 @@ public record OmnishapeData(BlockState camouflage, Vector3f[] corners) {
     }
 
     public static OmnishapeData fromNbt(CompoundTag tag) {
-        BlockState camo = BlockState.CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, tag.get("Camo"))
+        BlockState camo = BlockState.CODEC.parse(NbtOps.INSTANCE, tag.get("Camo"))
                 .result().orElseThrow(() -> new IllegalStateException("Failed to decode blockstate"));
 
         var cornerList = tag.getList("Corners", CompoundTag.TAG_COMPOUND);

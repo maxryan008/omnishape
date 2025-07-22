@@ -16,6 +16,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.ContainerHelper;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -66,7 +67,7 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
     }
 
     @Override
-    public AbstractContainerMenu createMenu(int syncId, Inventory inv, net.minecraft.world.entity.player.Player player) {
+    public AbstractContainerMenu createMenu(int syncId, Inventory inv, Player player) {
         this.currentMenu = new OmnibenchMenu(syncId, inv, this);
         return this.currentMenu;
     }

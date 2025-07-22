@@ -1,8 +1,9 @@
 package dev.omnishape.client.model;
 
+import net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin;
 import net.minecraft.resources.ResourceLocation;
 
-public class OmnishapeModelLoader implements net.fabricmc.fabric.api.client.model.loading.v1.ModelLoadingPlugin {
+public class OmnishapeModelLoader implements ModelLoadingPlugin {
     public static final OmnishapeModelLoader INSTANCE = new OmnishapeModelLoader();
 
     public static final ResourceLocation FRAME_BLOCK_MODEL = ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_base");

@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static dev.omnishape.Omnishape.id;
@@ -132,7 +133,7 @@ public class OmnibenchMenu extends AbstractContainerMenu {
 
                 if (menuBlockEntity != null) {
                     Vector3f[] original = menuBlockEntity.getCorners();
-                    List<Vector3f> cornerList = new java.util.ArrayList<>();
+                    List<Vector3f> cornerList = new ArrayList<>();
                     for (Vector3f v : original) {
                         cornerList.add(new Vector3f(v)); // copy
                     }
@@ -186,7 +187,7 @@ public class OmnibenchMenu extends AbstractContainerMenu {
 
         if (menuBlockEntity != null) {
             Vector3f[] original = menuBlockEntity.getCorners();
-            List<Vector3f> cornerList = new java.util.ArrayList<>();
+            List<Vector3f> cornerList = new ArrayList<>();
             for (Vector3f v : original) {
                 cornerList.add(new Vector3f(v)); // copy
             }
