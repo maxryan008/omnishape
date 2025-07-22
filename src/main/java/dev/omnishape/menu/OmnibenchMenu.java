@@ -1,6 +1,7 @@
 package dev.omnishape.menu;
 
 import com.mojang.datafixers.util.Pair;
+import dev.omnishape.Constant;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
@@ -23,8 +24,6 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-import static dev.omnishape.Omnishape.id;
-
 public class OmnibenchMenu extends AbstractContainerMenu {
 
     public static final int REF_SLOT = 0;
@@ -35,9 +34,9 @@ public class OmnibenchMenu extends AbstractContainerMenu {
     public static final int PLAYER_INV_SLOT_END = 40;
     public static final int HOTBAR_SLOT_START = 31;
     public static final int HOTBAR_SLOT_END = 40;
-    private static final Pair<ResourceLocation, ResourceLocation> REF_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/reference"));
-    private static final Pair<ResourceLocation, ResourceLocation> NEW_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/frame"));
-    private static final Pair<ResourceLocation, ResourceLocation> CAMO_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, id("slot/camoflauge"));
+    private static final Pair<ResourceLocation, ResourceLocation> REF_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, Constant.id("slot/reference"));
+    private static final Pair<ResourceLocation, ResourceLocation> NEW_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, Constant.id("slot/frame"));
+    private static final Pair<ResourceLocation, ResourceLocation> CAMO_ICON = Pair.of(InventoryMenu.BLOCK_ATLAS, Constant.id("slot/camoflauge"));
     private final Container internal;
     private final OmnibenchBlockEntity menuBlockEntity;
 

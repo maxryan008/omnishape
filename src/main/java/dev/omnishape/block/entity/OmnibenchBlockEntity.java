@@ -1,5 +1,6 @@
 package dev.omnishape.block.entity;
 
+import dev.omnishape.Constant;
 import dev.omnishape.menu.OmnibenchMenu;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
@@ -114,12 +115,12 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
         ListTag cornerList = new ListTag();
         for (Vector3f vec : corners) {
             CompoundTag vecTag = new CompoundTag();
-            vecTag.putFloat("x", vec.x);
-            vecTag.putFloat("y", vec.y);
-            vecTag.putFloat("z", vec.z);
+            vecTag.putFloat(Constant.Nbt.X, vec.x);
+            vecTag.putFloat(Constant.Nbt.Y, vec.y);
+            vecTag.putFloat(Constant.Nbt.Z, vec.z);
             cornerList.add(vecTag);
         }
-        compoundTag.put("Corners", cornerList);
+        compoundTag.put(Constant.Nbt.CORNERS, cornerList);
     }
 
     @Override
@@ -136,10 +137,10 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
     protected void loadAdditional(CompoundTag compoundTag, HolderLookup.Provider provider) {
         super.loadAdditional(compoundTag, provider);
         ContainerHelper.loadAllItems(compoundTag, inventory.getItems(), provider);
-        ListTag list = compoundTag.getList("Corners", Tag.TAG_COMPOUND);
+        ListTag list = compoundTag.getList(Constant.Nbt.CORNERS, Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size() && i < 8; i++) {
             CompoundTag vecTag = list.getCompound(i);
-            corners[i].set(vecTag.getFloat("x"), vecTag.getFloat("y"), vecTag.getFloat("z"));
+            corners[i].set(vecTag.getFloat(Constant.Nbt.X), vecTag.getFloat(Constant.Nbt.Y), vecTag.getFloat(Constant.Nbt.Z));
         }
     }
 

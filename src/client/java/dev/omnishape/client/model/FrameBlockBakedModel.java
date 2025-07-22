@@ -1,6 +1,7 @@
 package dev.omnishape.client.model;
 
 import dev.omnishape.BlockRotation;
+import dev.omnishape.Constant;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.block.entity.FrameBlockEntity;
 import dev.omnishape.client.TextureUtils;
@@ -170,13 +171,13 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
     @Override
     public void emitItemQuads(ItemStack stack, Supplier<RandomSource> randomSupplier, RenderContext context) {
+        Minecraft minecraft = Minecraft.getInstance();
+
         // Fallback values if data isn't attached
         Vector3f[] corners = new Vector3f[8];
         for (int i = 0; i < 8; i++) corners[i] = new Vector3f((i & 1), (i >> 1 & 1), (i >> 2 & 1));
 
-        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
-                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
-        );
+        BakedModel camoModel = minecraft.getModelManager().getModel(Constant.Model.FRAME_BLOCK);
         DataComponentMap components = stack.getComponents();
         if (!components.isEmpty()) {
             if (components.has(OmnishapeComponents.CORNERS_STATE)) {
@@ -188,7 +189,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
             if (components.has(OmnishapeComponents.CAMO_STATE)) {
                 BlockState storedCamo = components.get(OmnishapeComponents.CAMO_STATE);
                 if (storedCamo != null && !storedCamo.isAir()) {
-                    camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(storedCamo);
+                    camoModel = minecraft.getBlockRenderer().getBlockModel(storedCamo);
                 }
             }
         }
@@ -197,7 +198,7 @@ public class FrameBlockBakedModel extends ForwardingBakedModel {
 
         for (Direction dir : Direction.values()) {
             if (camoSprites.get(dir) == null) {
-                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
+                camoSprites.put(dir, minecraft.getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
             }
         }
 

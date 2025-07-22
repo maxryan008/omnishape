@@ -1,5 +1,6 @@
 package dev.omnishape.client.model;
 
+import dev.omnishape.Constant;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.*;
 import net.minecraft.resources.ResourceLocation;
@@ -10,11 +11,9 @@ import java.util.List;
 import java.util.function.Function;
 
 public class FrameItemRedirectModel implements UnbakedModel {
-    private static final ResourceLocation BLOCK_MODEL_ID = ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_base");
-
     @Override
     public Collection<ResourceLocation> getDependencies() {
-        return List.of(BLOCK_MODEL_ID);
+        return List.of(Constant.Model.FRAME_BLOCK);
     }
 
     @Override
@@ -24,7 +23,7 @@ public class FrameItemRedirectModel implements UnbakedModel {
 
     @Override
     public @Nullable BakedModel bake(ModelBaker modelBaker, Function<Material, TextureAtlasSprite> function, ModelState modelState) {
-        BakedModel blockModel = modelBaker.bake(BLOCK_MODEL_ID, modelState);
+        BakedModel blockModel = modelBaker.bake(Constant.Model.FRAME_BLOCK, modelState);
         return new FrameBlockBakedModel(blockModel);
     }
 }
