@@ -1,5 +1,6 @@
 package dev.omnishape.client;
 
+import dev.omnishape.Constant;
 import dev.omnishape.registry.OmnishapeBlocks;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -16,19 +17,19 @@ import java.util.HashMap;
 
 public class TextureUtils {
     public static @NotNull HashMap<Direction, TextureAtlasSprite> GetCamoSprites(@Nullable BlockState state) {
+        Minecraft minecraft = Minecraft.getInstance();
+
         // Get camo block-type of the frame block
-        BakedModel camoModel = Minecraft.getInstance().getModelManager().getModel(
-                ResourceLocation.fromNamespaceAndPath("omnishape", "block/frame_block_default")
-        );
+        BakedModel camoModel = minecraft.getModelManager().getModel(Constant.Model.FRAME_BLOCK);
 
         // If frame camo block exists (Not default frame block represented as AIR)
         if (state == null) {
-            camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState());
+            camoModel = minecraft.getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState());
         } else {
             if (state.getBlock() != Blocks.AIR) {
                 if (!state.isAir()) {
                     // get the model of the camo block
-                    camoModel = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+                    camoModel = minecraft.getBlockRenderer().getBlockModel(state);
                 }
             }
         }

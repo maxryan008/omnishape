@@ -2,7 +2,7 @@ package dev.omnishape.registry;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.omnishape.Omnishape;
+import dev.omnishape.Constant;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.resources.ResourceLocation;
@@ -27,8 +27,8 @@ public class OmnishapeComponents {
             DataComponentType.<List<Vector3f>>builder()
                     .persistent(VECTOR3F_LIST_CODEC)
                     .build();
-    public static final ResourceLocation CAMO_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "camo_state");
-    public static final ResourceLocation CORNERS_STATE_ID = ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "corners_state");
+    public static final ResourceLocation CAMO_STATE_ID = Constant.id("camo_state");
+    public static final ResourceLocation CORNERS_STATE_ID = Constant.id("corners_state");
     public static final DataComponentType<BlockState> CAMO_STATE =
             DataComponentType.<BlockState>builder()
                     .persistent(BlockState.CODEC)

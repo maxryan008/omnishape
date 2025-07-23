@@ -1,8 +1,10 @@
 package dev.omnishape.api;
 
+import dev.omnishape.Constant;
 import dev.omnishape.registry.OmnishapeBlocks;
 import dev.omnishape.registry.OmnishapeComponents;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -19,30 +21,30 @@ public record OmnishapeData(BlockState camouflage, Vector3f[] corners) {
 
     public CompoundTag toNbt() {
         CompoundTag tag = new CompoundTag();
-        tag.put("Camo", BlockState.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, this.camouflage())
+        tag.put(Constant.Nbt.CAMO, BlockState.CODEC.encodeStart(NbtOps.INSTANCE, this.camouflage())
                 .result().orElseThrow(() -> new IllegalStateException("Failed to encode blockstate")));
         var cornerList = new net.minecraft.nbt.ListTag();
         for (Vector3f vec : corners) {
             var vecTag = new CompoundTag();
-            vecTag.putFloat("x", vec.x);
-            vecTag.putFloat("y", vec.y);
-            vecTag.putFloat("z", vec.z);
+            vecTag.putFloat(Constant.Nbt.X, vec.x);
+            vecTag.putFloat(Constant.Nbt.Y, vec.y);
+            vecTag.putFloat(Constant.Nbt.Z, vec.z);
             cornerList.add(vecTag);
         }
-        tag.put("Corners", cornerList);
+        tag.put(Constant.Nbt.CORNERS, cornerList);
         return tag;
     }
 
     public static OmnishapeData fromNbt(CompoundTag tag) {
-        BlockState camo = BlockState.CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, tag.get("Camo"))
+        BlockState camo = BlockState.CODEC.parse(NbtOps.INSTANCE, tag.get(Constant.Nbt.CAMO))
                 .result().orElseThrow(() -> new IllegalStateException("Failed to decode blockstate"));
 
-        var cornerList = tag.getList("Corners", CompoundTag.TAG_COMPOUND);
+        var cornerList = tag.getList(Constant.Nbt.CORNERS, CompoundTag.TAG_COMPOUND);
         Vector3f[] corners = new Vector3f[CORNER_COUNT];
         for (int i = 0; i < CORNER_COUNT; i++) {
             if (i < cornerList.size()) {
                 var vec = (CompoundTag) cornerList.get(i);
-                corners[i] = new Vector3f(vec.getFloat("x"), vec.getFloat("y"), vec.getFloat("z"));
+                corners[i] = new Vector3f(vec.getFloat(Constant.Nbt.X), vec.getFloat(Constant.Nbt.Y), vec.getFloat(Constant.Nbt.Z));
             } else {
                 corners[i] = new Vector3f(); // fallback
             }

@@ -1,5 +1,6 @@
 package dev.omnishape.client.api;
 
+import dev.omnishape.Constant;
 import dev.omnishape.api.OmnishapeData;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.renderer.RenderType;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class OmnishapeApi {
-    private static final boolean ENABLED = FabricLoader.getInstance().isModLoaded("omnishape");
+    private static final boolean ENABLED = FabricLoader.getInstance().isModLoaded(Constant.MOD_ID);
     private static Internal internal = Dummy.INSTANCE; // CHANGED: moved from interface to field
 
     public static boolean isEnabled() {

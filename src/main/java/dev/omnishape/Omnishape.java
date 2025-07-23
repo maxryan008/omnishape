@@ -7,17 +7,9 @@ import dev.omnishape.registry.OmnishapeComponents;
 import dev.omnishape.registry.OmnishapeMenus;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTabs;
 
 public class Omnishape implements ModInitializer {
-
-    public static final String MOD_ID = "omnishape";
-
-    public static ResourceLocation id(String id) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, id);
-    }
-
     @Override
     public void onInitialize() {
         OmnishapeBlocks.register();

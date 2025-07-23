@@ -1,6 +1,6 @@
 package dev.omnishape.registry;
 
-import dev.omnishape.Omnishape;
+import dev.omnishape.Constant;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.menu.OmnibenchMenu;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerType;
@@ -25,6 +25,6 @@ public class OmnishapeMenus {
                 BlockPos.STREAM_CODEC // built-in codec for BlockPos
         );
 
-        Registry.register(BuiltInRegistries.MENU, ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "omnibench"), OMNIBENCH_MENU);
+        Registry.register(BuiltInRegistries.MENU, Constant.Block.OMNIBENCH, OMNIBENCH_MENU);
     }
 }

@@ -1,6 +1,6 @@
 package dev.omnishape.registry;
 
-import dev.omnishape.Omnishape;
+import dev.omnishape.Constant;
 import dev.omnishape.block.entity.FrameBlockEntity;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import net.minecraft.core.Registry;
@@ -15,13 +15,13 @@ public class OmnishapeBlockEntities {
     public static void register() {
         OMNIBENCH = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
-                ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "omnibench"),
+                Constant.Block.OMNIBENCH,
                 BlockEntityType.Builder.of(OmnibenchBlockEntity::new, OmnishapeBlocks.OMNIBENCH).build(null)
         );
 
         FRAME_BLOCK = Registry.register(
                 BuiltInRegistries.BLOCK_ENTITY_TYPE,
-                ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "frame_block"),
+                Constant.Block.FRAME_BLOCK,
                 BlockEntityType.Builder.of(FrameBlockEntity::new, OmnishapeBlocks.FRAME_BLOCK).build(null)
         );
     }

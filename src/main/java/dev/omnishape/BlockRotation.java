@@ -59,7 +59,7 @@ public class BlockRotation implements Comparable<BlockRotation> {
     }
 
     public static BlockRotation fromTag(CompoundTag tag) {
-        return new BlockRotation(tag.getInt("Pitch"), tag.getInt("Yaw"), tag.getInt("Roll"));
+        return new BlockRotation(tag.getInt(Constant.Nbt.PITCH), tag.getInt(Constant.Nbt.YAW), tag.getInt(Constant.Nbt.ROLL));
     }
 
     public Vector3f toVector() {
@@ -68,9 +68,9 @@ public class BlockRotation implements Comparable<BlockRotation> {
 
     public Tag toTag() {
         CompoundTag tag = new CompoundTag();
-        tag.putInt("Pitch", pitch);
-        tag.putInt("Yaw", yaw);
-        tag.putInt("Roll", roll);
+        tag.putInt(Constant.Nbt.PITCH, pitch);
+        tag.putInt(Constant.Nbt.YAW, yaw);
+        tag.putInt(Constant.Nbt.ROLL, roll);
         return tag;
     }
 

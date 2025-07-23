@@ -1,5 +1,6 @@
 package dev.omnishape.block.entity;
 
+import dev.omnishape.Constant;
 import dev.omnishape.api.OmnishapeData;
 import dev.omnishape.block.FrameBlock;
 import dev.omnishape.registry.OmnishapeBlockEntities;
@@ -68,18 +69,18 @@ public class FrameBlockEntity extends BlockEntity {
         super.saveAdditional(tag, provider);
         OmnibenchBlockEntity.SaveCorners(tag, corners);
 
-        tag.put("Camo", NbtUtils.writeBlockState(camoState));
+        tag.put(Constant.Nbt.CAMO, NbtUtils.writeBlockState(camoState));
     }
 
     @Override
     protected void loadAdditional(CompoundTag tag, HolderLookup.Provider provider) {
-        ListTag list = tag.getList("Corners", Tag.TAG_COMPOUND);
+        ListTag list = tag.getList(Constant.Nbt.CORNERS, Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size() && i < 8; i++) {
             CompoundTag vecTag = list.getCompound(i);
-            corners[i] = new Vector3f(vecTag.getFloat("x"), vecTag.getFloat("y"), vecTag.getFloat("z"));
+            corners[i] = new Vector3f(vecTag.getFloat(Constant.Nbt.X), vecTag.getFloat(Constant.Nbt.Y), vecTag.getFloat(Constant.Nbt.Z));
         }
 
-        camoState = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound("Camo"));
+        camoState = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), tag.getCompound(Constant.Nbt.CAMO));
     }
 
     @Override
@@ -87,7 +88,7 @@ public class FrameBlockEntity extends BlockEntity {
         CompoundTag tag = super.getUpdateTag(provider);
         OmnibenchBlockEntity.SaveCorners(tag, corners);
 
-        tag.put("Camo", NbtUtils.writeBlockState(camoState));
+        tag.put(Constant.Nbt.CAMO, NbtUtils.writeBlockState(camoState));
         return tag;
     }
 
@@ -103,11 +104,11 @@ public class FrameBlockEntity extends BlockEntity {
         return cachedShape;
     }
 
-    public @Nullable dev.omnishape.api.OmnishapeData getData() {
-        return new dev.omnishape.api.OmnishapeData(this.camoState, this.corners);
+    public @Nullable OmnishapeData getData() {
+        return new OmnishapeData(this.camoState, this.corners);
     }
 
-    public void setData(dev.omnishape.api.OmnishapeData data) {
+    public void setData(OmnishapeData data) {
         this.camoState = data.camouflage();
         Vector3f[] from = data.corners();
         for (int i = 0; i < this.corners.length; i++) {

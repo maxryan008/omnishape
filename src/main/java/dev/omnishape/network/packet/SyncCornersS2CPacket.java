@@ -1,6 +1,6 @@
 package dev.omnishape.network.packet;
 
-import dev.omnishape.Omnishape;
+import dev.omnishape.Constant;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
@@ -10,7 +10,7 @@ import org.joml.Vector3f;
 
 public record SyncCornersS2CPacket(BlockPos pos, Vector3f[] corners) implements CustomPacketPayload {
     public static final Type<SyncCornersS2CPacket> TYPE =
-            new Type<>(Omnishape.id("sync_corners_s2c"));
+            new Type<>(Constant.id("sync_corners_s2c"));
 
     public static final StreamCodec<FriendlyByteBuf, SyncCornersS2CPacket> CODEC =
             StreamCodec.of(SyncCornersS2CPacket::write, SyncCornersS2CPacket::read);

@@ -4,7 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import dev.omnishape.Omnishape;
+import dev.omnishape.Constant;
 import dev.omnishape.client.TextureUtils;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
@@ -41,8 +41,7 @@ import org.joml.Vector4f;
 import java.util.HashMap;
 
 public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
-    private static final ResourceLocation TEXTURE =
-            ResourceLocation.fromNamespaceAndPath(Omnishape.MOD_ID, "textures/gui/omnibench_background.png");
+    private static final ResourceLocation TEXTURE = Constant.id("textures/gui/omnibench_background.png");
 
     private static final int TEXTURE_WIDTH = 320;
     private static final int TEXTURE_HEIGHT = 240;
@@ -467,6 +466,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     }
 
     private void renderCube(GuiGraphics gui) {
+        Minecraft minecraft = Minecraft.getInstance();
         ItemStack stack = menu.getItem(OmnibenchMenu.CAMO_SLOT);
         Block block = OmnishapeBlocks.FRAME_BLOCK; // fallback
 
@@ -474,7 +474,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             Block candidate = blockItem.getBlock();
             BlockState state = candidate.defaultBlockState();
 
-            if (state.isSolidRender(Minecraft.getInstance().level, BlockPos.ZERO)) {
+            if (state.isSolidRender(minecraft.level, BlockPos.ZERO)) {
                 block = candidate;
             }
         }
@@ -485,7 +485,7 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
         for (Direction dir : Direction.values()) {
             if (camoSprites.get(dir) == null) {
-                camoSprites.put(dir, Minecraft.getInstance().getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
+                camoSprites.put(dir, minecraft.getBlockRenderer().getBlockModel(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState()).getQuads(OmnishapeBlocks.FRAME_BLOCK.defaultBlockState(), dir, RandomSource.create()).getFirst().getSprite());
             }
         }
 
