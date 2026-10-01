@@ -397,23 +397,52 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             Vector2f screenAxis = new Vector2f(axisScreen.x(), axisScreen.y()).normalize();
 
             // Convert mouse drag to screen-space movement vector
-            Vector2f mouseDelta = new Vector2f((float) dx, (float) dy); // Y is inverted in screen space
+            Vector2f mouseDelta = new Vector2f((float) dx, (float) dy);
 
             // Project mouse delta onto axis screen direction
             float movementAmount = mouseDelta.dot(screenAxis) / 40f;
 
-            // Apply movement
-            Vector3f current = menu.getCorners()[selectedCorner];
-            if (draggingAxis == 0)
-                current.x = Mth.clamp(current.x + movementAmount, 0f, 1f);
-            else if (draggingAxis == 1)
-                current.y = Mth.clamp(current.y + movementAmount, 0f, 1f);
-            else
-                current.z = Mth.clamp(current.z + movementAmount, 0f, 1f);
+            /*
+             * IMPORTANT:
+             * Always copy the corner before modifying it.
+             *
+             * getCorners()[selectedCorner] is the actual Vector3f stored by the
+             * block entity, so mutating it directly would bypass setCorner()
+             * validation.
+             */
+            Vector3f current = new Vector3f(menu.getCorners()[selectedCorner]);
+
+            if (draggingAxis == 0) {
+                current.x = Mth.clamp(
+                        current.x + movementAmount,
+                        0.0f,
+                        1.0f
+                );
+            } else if (draggingAxis == 1) {
+                current.y = Mth.clamp(
+                        current.y + movementAmount,
+                        0.0f,
+                        1.0f
+                );
+            } else {
+                current.z = Mth.clamp(
+                        current.z + movementAmount,
+                        0.0f,
+                        1.0f
+                );
+            }
 
             menu.getBlockEntity().setCorner(selectedCorner, current);
 
-            dragStartCorner.set(current);
+            /*
+             * setCorner() may have clamped the requested position to prevent
+             * corners crossing. Use the actual accepted position as our new
+             * drag origin.
+             */
+            dragStartCorner.set(
+                    menu.getCorners()[selectedCorner]
+            );
+
             dragStartMouseX = mouseX;
             dragStartMouseY = mouseY;
 
