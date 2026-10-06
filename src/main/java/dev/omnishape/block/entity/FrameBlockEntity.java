@@ -14,6 +14,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -110,11 +112,59 @@ public class FrameBlockEntity extends BlockEntity {
 
     public void setData(OmnishapeData data) {
         this.camoState = data.camouflage();
+
         Vector3f[] from = data.corners();
+
         for (int i = 0; i < this.corners.length; i++) {
-            this.corners[i] = new Vector3f(from[i]);
+            this.corners[i] =
+                    new Vector3f(from[i]);
         }
+
         this.cachedShape = null;
         this.setChanged();
+
+        syncLightLevel();
+    }
+
+    private void syncLightLevel() {
+        if (level == null) {
+            return;
+        }
+
+        BlockState current =
+                level.getBlockState(worldPosition);
+
+        if (!(current.getBlock() instanceof FrameBlock)) {
+            return;
+        }
+
+        int expected =
+                Mth.clamp(
+                        camoState.getLightEmission(),
+                        0,
+                        15
+                );
+
+        int currentLight =
+                current.getValue(
+                        FrameBlock.LIGHT_LEVEL
+                );
+
+        if (currentLight == expected) {
+            return;
+        }
+
+        level.setBlock(
+                worldPosition,
+                current.setValue(
+                        FrameBlock.LIGHT_LEVEL,
+                        expected
+                ),
+                Block.UPDATE_ALL
+        );
+
+        level.getChunkSource()
+                .getLightEngine()
+                .checkBlock(worldPosition);
     }
 }
