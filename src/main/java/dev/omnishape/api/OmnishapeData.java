@@ -53,6 +53,78 @@ public record OmnishapeData(BlockState camouflage, Vector3f[] corners) {
         return new OmnishapeData(camo, corners);
     }
 
+    public static double calculateVolume(Vector3f[] corners) {
+        if (corners == null || corners.length < CORNER_COUNT) {
+            return 0.0;
+        }
+
+        /*
+         * These are the same six faces used by the OmniShape geometry.
+         *
+         * Each quad is split:
+         *
+         *     0 ----- 1
+         *     |     / |
+         *     |   /   |
+         *     | /     |
+         *     3 ----- 2
+         *
+         * into:
+         *
+         *     0, 1, 2
+         *     0, 2, 3
+         */
+        int[][] faces = {
+                {0, 1, 3, 2},
+                {6, 7, 5, 4},
+                {4, 5, 1, 0},
+                {2, 3, 7, 6},
+                {0, 2, 6, 4},
+                {5, 7, 3, 1}
+        };
+
+        double signedVolume = 0.0;
+
+        for (int[] face : faces) {
+            signedVolume += signedTetrahedronVolume(
+                    corners[face[0]],
+                    corners[face[1]],
+                    corners[face[2]]
+            );
+
+            signedVolume += signedTetrahedronVolume(
+                    corners[face[0]],
+                    corners[face[2]],
+                    corners[face[3]]
+            );
+        }
+
+        /*
+         * The face winding used by OmniShape currently produces a negative
+         * signed volume for the default cube, so take the absolute value.
+         *
+         * Clamp because the editor restricts everything to the unit cube and
+         * numerical noise should never make the result slightly > 1.
+         */
+        return Math.clamp(
+                Math.abs(signedVolume),
+                0.0,
+                1.0
+        );
+    }
+
+    private static double signedTetrahedronVolume(
+            Vector3f a,
+            Vector3f b,
+            Vector3f c
+    ) {
+        return (
+                a.x * (b.y * c.z - b.z * c.y)
+                        - a.y * (b.x * c.z - b.z * c.x)
+                        + a.z * (b.x * c.y - b.y * c.x)
+        ) / 6.0;
+    }
+
     public static boolean canExtractFromItem(ItemStack stack) {
         return stack.has(OmnishapeComponents.CAMO_STATE) && stack.has(OmnishapeComponents.CORNERS_STATE);
     }
