@@ -5,6 +5,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import dev.omnishape.Constant;
+import dev.omnishape.block.entity.OmnibenchBlockEntity;
+import dev.omnishape.client.ClientHooks;
 import dev.omnishape.client.TextureUtils;
 import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
@@ -15,6 +17,7 @@ import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.renderer.RenderType;
@@ -66,6 +69,9 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     private Vector3f dragStartCorner = null;
     private double dragStartMouseX = 0;
     private double dragStartMouseY = 0;
+
+    private Button resetCornersButton;
+    private Button resetViewButton;
     public OmnibenchScreen(OmnibenchMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
     }
@@ -85,8 +91,14 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
         int sliderWidth = 100;
         int sliderHeight = 18;
 
-        AbstractSliderButton detailSlider = new AbstractSliderButton(sliderX, sliderY, sliderWidth, sliderHeight,
-                Component.literal("Detail: 1"), 0f) {
+        AbstractSliderButton detailSlider = new AbstractSliderButton(
+                sliderX,
+                sliderY,
+                sliderWidth,
+                sliderHeight,
+                Component.literal("Detail: 1"),
+                0f
+        ) {
             @Override
             protected void updateMessage() {
                 int level = (int) (value * 3 + 1);
@@ -99,23 +111,128 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 // TODO: Apply level to your config
             }
         };
+
         this.addRenderableWidget(detailSlider);
 
-        xInput = new EditBox(this.font, leftPos + 30, topPos + 20, 50, 14, Component.literal("X"));
-        yInput = new EditBox(this.font, leftPos + 30, topPos + 38, 50, 14, Component.literal("Y"));
-        zInput = new EditBox(this.font, leftPos + 30, topPos + 56, 50, 14, Component.literal("Z"));
+        /*
+         * Shape/view reset controls.
+         *
+         * These sit in the top-right of the 3D editing area.
+         */
+        resetCornersButton = Button.builder(
+                        Component.literal("Reset Corners"),
+                        button -> resetCorners()
+                )
+                .bounds(
+                        this.leftPos + 226,
+                        this.topPos + 16,
+                        78,
+                        18
+                )
+                .build();
+
+        resetViewButton = Button.builder(
+                        Component.literal("Reset View"),
+                        button -> resetView()
+                )
+                .bounds(
+                        this.leftPos + 226,
+                        this.topPos + 38,
+                        78,
+                        18
+                )
+                .build();
+
+        this.addRenderableWidget(resetCornersButton);
+        this.addRenderableWidget(resetViewButton);
+
+        xInput = new EditBox(
+                this.font,
+                leftPos + 30,
+                topPos + 20,
+                50,
+                14,
+                Component.literal("X")
+        );
+
+        yInput = new EditBox(
+                this.font,
+                leftPos + 30,
+                topPos + 38,
+                50,
+                14,
+                Component.literal("Y")
+        );
+
+        zInput = new EditBox(
+                this.font,
+                leftPos + 30,
+                topPos + 56,
+                50,
+                14,
+                Component.literal("Z")
+        );
 
         xInput.setResponder(str -> updateCornerFromText());
         yInput.setResponder(str -> updateCornerFromText());
         zInput.setResponder(str -> updateCornerFromText());
 
-        xInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
-        yInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
-        zInput.setFilter(s -> s.matches("[-+]?[0-9]*\\.?[0-9]*"));
+        xInput.setFilter(
+                s -> s.matches("[-+]?[0-9]*\\.?[0-9]*")
+        );
+
+        yInput.setFilter(
+                s -> s.matches("[-+]?[0-9]*\\.?[0-9]*")
+        );
+
+        zInput.setFilter(
+                s -> s.matches("[-+]?[0-9]*\\.?[0-9]*")
+        );
 
         addRenderableWidget(xInput);
         addRenderableWidget(yInput);
         addRenderableWidget(zInput);
+    }
+
+    private void resetCorners() {
+        OmnibenchBlockEntity blockEntity =
+                menu.getBlockEntity();
+
+        if (blockEntity == null) {
+            return;
+        }
+
+        /*
+         * Update locally immediately so the GUI responds without waiting
+         * for the server round-trip.
+         */
+        blockEntity.resetCorners();
+
+        /*
+         * Tell the server to perform the same atomic reset. The server will
+         * then broadcast the canonical corner state back to every client
+         * currently viewing this Omnibench.
+         */
+        ClientHooks.sendResetCorners(
+                blockEntity.getBlockPos()
+        );
+
+        draggingAxis = -1;
+        dragStartCorner = null;
+
+        syncCornerToTextFields();
+    }
+
+    private void resetView() {
+        rotX = 30f;
+        rotY = 45f;
+
+        dragging = false;
+        draggingAxis = -1;
+
+        dragStartCorner = null;
+
+        lastMatrix = null;
     }
 
     @Override
@@ -266,11 +383,22 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             accessorAbstract.callRenderFloatingItem(guiGraphics, accessorAbstract.getSnapbackItem(), x, y, null);
         }
 
-        // Manually render selected widgets like the slider
+        // Manually render widgets that are not the corner coordinate EditBoxes.
         for (var widget : accessorScreen.getRenderables()) {
-            // Only render if visible
             if (widget instanceof AbstractSliderButton slider && slider.visible) {
-                slider.render(guiGraphics, mouseX, mouseY, partialTick);
+                slider.render(
+                        guiGraphics,
+                        mouseX,
+                        mouseY,
+                        partialTick
+                );
+            } else if (widget instanceof Button button && button.visible) {
+                button.render(
+                        guiGraphics,
+                        mouseX,
+                        mouseY,
+                        partialTick
+                );
             }
         }
 
@@ -284,6 +412,24 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (resetCornersButton != null
+                && resetCornersButton.mouseClicked(
+                mouseX,
+                mouseY,
+                button
+        )) {
+            return true;
+        }
+
+        if (resetViewButton != null
+                && resetViewButton.mouseClicked(
+                mouseX,
+                mouseY,
+                button
+        )) {
+            return true;
+        }
+
         if (xInput.mouseClicked(mouseX, mouseY, button)) {
             setFocused(xInput);
             xInput.setFocused(true);
@@ -308,54 +454,118 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             xInput.setFocused(false);
             yInput.setFocused(false);
             zInput.setFocused(false);
+
             for (int i = 0; i < projectedCorners.length; i++) {
                 if (selectedCorner >= 0) {
-                    Vector3f base = new Vector3f(menu.getCorners()[selectedCorner]).sub(0.5f, 0.5f, 0.5f);
+                    Vector3f base = new Vector3f(
+                            menu.getCorners()[selectedCorner]
+                    ).sub(
+                            0.5f,
+                            0.5f,
+                            0.5f
+                    );
+
                     float arrowLength = 0.3f;
 
-                    Matrix4f mat = lastMatrix; // extract this from renderCube or cache it
+                    Matrix4f mat = lastMatrix;
 
                     if (mat == null) {
                         continue;
                     }
 
-                    Vector4f baseScreen = new Vector4f(base, 1f).mul(mat);
-                    Vector4f xScreen = new Vector4f(base.x + arrowLength, base.y, base.z, 1f).mul(mat);
-                    Vector4f yScreen = new Vector4f(base.x, base.y - arrowLength, base.z, 1f).mul(mat);
-                    Vector4f zScreen = new Vector4f(base.x, base.y, base.z + arrowLength, 1f).mul(mat);
+                    Vector4f baseScreen =
+                            new Vector4f(base, 1f).mul(mat);
 
-                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), xScreen.x(), xScreen.y(), 2f)) {
+                    Vector4f xScreen =
+                            new Vector4f(
+                                    base.x + arrowLength,
+                                    base.y,
+                                    base.z,
+                                    1f
+                            ).mul(mat);
+
+                    Vector4f yScreen =
+                            new Vector4f(
+                                    base.x,
+                                    base.y - arrowLength,
+                                    base.z,
+                                    1f
+                            ).mul(mat);
+
+                    Vector4f zScreen =
+                            new Vector4f(
+                                    base.x,
+                                    base.y,
+                                    base.z + arrowLength,
+                                    1f
+                            ).mul(mat);
+
+                    if (isMouseInsideAxis(
+                            mouseX,
+                            mouseY,
+                            baseScreen.x(),
+                            baseScreen.y(),
+                            xScreen.x(),
+                            xScreen.y(),
+                            2f
+                    )) {
                         draggingAxis = 0;
-                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
+                        dragStartCorner = new Vector3f(
+                                menu.getCorners()[selectedCorner]
+                        );
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
                     }
-                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), -baseScreen.y(), yScreen.x(), yScreen.y(), 2f)) {
+
+                    if (isMouseInsideAxis(
+                            mouseX,
+                            mouseY,
+                            baseScreen.x(),
+                            -baseScreen.y(),
+                            yScreen.x(),
+                            yScreen.y(),
+                            2f
+                    )) {
                         draggingAxis = 1;
-                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
+                        dragStartCorner = new Vector3f(
+                                menu.getCorners()[selectedCorner]
+                        );
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
                     }
-                    if (isMouseInsideAxis(mouseX, mouseY, baseScreen.x(), baseScreen.y(), zScreen.x(), zScreen.y(), 2f)) {
+
+                    if (isMouseInsideAxis(
+                            mouseX,
+                            mouseY,
+                            baseScreen.x(),
+                            baseScreen.y(),
+                            zScreen.x(),
+                            zScreen.y(),
+                            2f
+                    )) {
                         draggingAxis = 2;
-                        dragStartCorner = new Vector3f(menu.getCorners()[selectedCorner]);
+                        dragStartCorner = new Vector3f(
+                                menu.getCorners()[selectedCorner]
+                        );
                         dragStartMouseX = mouseX;
                         dragStartMouseY = mouseY;
                         return true;
                     }
                 }
 
-                Vector4f screenCorner = projectedCorners[i];
+                Vector4f screenCorner =
+                        projectedCorners[i];
+
                 float screenX = screenCorner.x();
                 float screenY = screenCorner.y();
                 float screenZ = screenCorner.z();
 
-                // Only allow selecting visible corners (in front of the screen/cube)
-                if (screenZ < 10 || screenZ > 100) continue; // too far or behind
+                if (screenZ < 10 || screenZ > 100) {
+                    continue;
+                }
 
-                // Mini cube is 0.1 units in 3D space, scaled by 40px
                 float halfSize = 0.1f * 40f / 2f;
 
                 float left = screenX - halfSize;
@@ -363,23 +573,36 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
                 float top = screenY - halfSize;
                 float bottom = screenY + halfSize;
 
-                if (mouseX >= left && mouseX <= right && mouseY >= top && mouseY <= bottom) {
-                    selectedCorner = (selectedCorner == i) ? -1 : i; // toggle selection
+                if (mouseX >= left
+                        && mouseX <= right
+                        && mouseY >= top
+                        && mouseY <= bottom) {
+
+                    selectedCorner =
+                            selectedCorner == i
+                                    ? -1
+                                    : i;
+
                     draggingAxis = -1;
 
                     syncCornerToTextFields();
+
                     return true;
                 }
             }
 
-            // If not clicking on any visible corner, allow dragging
             dragging = true;
             lastMouseX = mouseX;
             lastMouseY = mouseY;
+
             return true;
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(
+                mouseX,
+                mouseY,
+                button
+        );
     }
 
     @Override

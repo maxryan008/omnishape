@@ -130,6 +130,19 @@ public class OmnibenchBlockEntity extends BlockEntity implements ExtendedScreenH
         }
     }
 
+    public void resetCorners() {
+        for (int i = 0; i < corners.length; i++) {
+            corners[i].set(
+                    i & 1,
+                    i >> 1 & 1,
+                    i >> 2 & 1
+            );
+        }
+
+        setChanged();
+        inventory.setChanged();
+    }
+
     /*
      * The six quads of the OmniShape block.
      *
