@@ -9,8 +9,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
-import java.util.Optional;
-
 public final class FacadeRaycast {
 
     public enum HitPart {
@@ -27,6 +25,33 @@ public final class FacadeRaycast {
             BlockGetter level,
             BlockPos pos
     ) {
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
+                        level,
+                        pos
+                );
+
+        if (facade == null) {
+            return HitPart.HOST;
+        }
+
+        return raycastPlayer(
+                player,
+                level,
+                pos,
+                facade
+        );
+    }
+
+    /**
+     * Fast path for callers that already fetched the facade.
+     */
+    public static HitPart raycastPlayer(
+            Player player,
+            BlockGetter level,
+            BlockPos pos,
+            FacadeData facade
+    ) {
         Vec3 start =
                 player.getEyePosition();
 
@@ -35,8 +60,11 @@ public final class FacadeRaycast {
 
         Vec3 end =
                 start.add(
-                        player.getViewVector(1.0F)
-                                .scale(reach)
+                        player.getViewVector(
+                                1.0F
+                        ).scale(
+                                reach
+                        )
                 );
 
         return raycast(
@@ -44,7 +72,10 @@ public final class FacadeRaycast {
                 pos,
                 start,
                 end,
-                CollisionContext.of(player)
+                CollisionContext.of(
+                        player
+                ),
+                facade
         );
     }
 
@@ -54,12 +85,44 @@ public final class FacadeRaycast {
             Vec3 start,
             Vec3 end
     ) {
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
+                        level,
+                        pos
+                );
+
+        if (facade == null) {
+            return HitPart.HOST;
+        }
+
         return raycast(
                 level,
                 pos,
                 start,
                 end,
-                CollisionContext.empty()
+                CollisionContext.empty(),
+                facade
+        );
+    }
+
+    /**
+     * Fast path for systems such as explosion handling that already know
+     * which facade they are evaluating.
+     */
+    public static HitPart raycast(
+            BlockGetter level,
+            BlockPos pos,
+            Vec3 start,
+            Vec3 end,
+            FacadeData facade
+    ) {
+        return raycast(
+                level,
+                pos,
+                start,
+                end,
+                CollisionContext.empty(),
+                facade
         );
     }
 
@@ -68,31 +131,32 @@ public final class FacadeRaycast {
             BlockPos pos,
             Vec3 start,
             Vec3 end,
-            CollisionContext context
+            CollisionContext context,
+            FacadeData facade
     ) {
-        Optional<FacadeData> facadeOptional =
-                FacadeManager.getFacade(
-                        level,
+        BlockState hostState =
+                level.getBlockState(
                         pos
                 );
 
-        if (facadeOptional.isEmpty()) {
-            return HitPart.HOST;
-        }
-
-        FacadeData facade =
-                facadeOptional.get();
-
-        BlockState hostState =
-                level.getBlockState(pos);
-
+        /*
+         * We explicitly request the host shape without the facade attached,
+         * otherwise we'd just be comparing:
+         *
+         *     host + facade
+         *
+         * against:
+         *
+         *     facade
+         */
         VoxelShape hostShape =
                 FacadeContext.withoutFacadeShape(
-                        () -> hostState.getShape(
-                                level,
-                                pos,
-                                context
-                        )
+                        () ->
+                                hostState.getShape(
+                                        level,
+                                        pos,
+                                        context
+                                )
                 );
 
         VoxelShape facadeShape =
@@ -112,12 +176,10 @@ public final class FacadeRaycast {
                         pos
                 );
 
-        if (hostHit == null && facadeHit == null) {
-            return HitPart.NONE;
-        }
-
         if (hostHit == null) {
-            return HitPart.FACADE;
+            return facadeHit == null
+                    ? HitPart.NONE
+                    : HitPart.FACADE;
         }
 
         if (facadeHit == null) {
@@ -126,11 +188,15 @@ public final class FacadeRaycast {
 
         double hostDistance =
                 hostHit.getLocation()
-                        .distanceToSqr(start);
+                        .distanceToSqr(
+                                start
+                        );
 
         double facadeDistance =
                 facadeHit.getLocation()
-                        .distanceToSqr(start);
+                        .distanceToSqr(
+                                start
+                        );
 
         return facadeDistance <= hostDistance
                 ? HitPart.FACADE

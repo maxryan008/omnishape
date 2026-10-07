@@ -1,5 +1,6 @@
 package dev.omnishape.client.mixin;
 
+import dev.omnishape.api.facade.FacadeData;
 import dev.omnishape.api.facade.FacadeManager;
 import dev.omnishape.api.facade.FacadeRaycast;
 import net.minecraft.client.Minecraft;
@@ -33,33 +34,33 @@ public abstract class MultiPlayerGameModeFacadeMixin {
             return;
         }
 
-        if (!FacadeManager.hasFacade(
-                minecraft.level,
-                pos
-        )) {
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
+                        minecraft.level,
+                        pos
+                );
+
+        if (facade == null) {
             return;
         }
 
         if (FacadeRaycast.raycastPlayer(
                 minecraft.player,
                 minecraft.level,
-                pos
+                pos,
+                facade
         ) != FacadeRaycast.HitPart.FACADE) {
             return;
         }
 
-        /*
-         * Optimistically remove the visual facade.
-         *
-         * The normal destroy packet still reaches the server, where
-         * ServerPlayerGameModeFacadeMixin performs the authoritative removal.
-         */
         FacadeManager.removeFacade(
                 minecraft.level,
                 pos,
                 false
         );
 
-        cir.setReturnValue(true);
+        cir.setReturnValue(
+                true
+        );
     }
 }

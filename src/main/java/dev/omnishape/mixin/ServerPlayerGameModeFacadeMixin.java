@@ -1,5 +1,6 @@
 package dev.omnishape.mixin;
 
+import dev.omnishape.api.facade.FacadeData;
 import dev.omnishape.api.facade.FacadeManager;
 import dev.omnishape.api.facade.FacadeRaycast;
 import net.minecraft.core.BlockPos;
@@ -32,17 +33,21 @@ public abstract class ServerPlayerGameModeFacadeMixin {
             BlockPos pos,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!FacadeManager.hasFacade(
-                level,
-                pos
-        )) {
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
+                        level,
+                        pos
+                );
+
+        if (facade == null) {
             return;
         }
 
         if (FacadeRaycast.raycastPlayer(
                 player,
                 level,
-                pos
+                pos,
+                facade
         ) != FacadeRaycast.HitPart.FACADE) {
             return;
         }
@@ -59,10 +64,8 @@ public abstract class ServerPlayerGameModeFacadeMixin {
                 -1
         );
 
-        /*
-         * Tell vanilla that the requested destruction succeeded,
-         * but leave the host block untouched.
-         */
-        cir.setReturnValue(true);
+        cir.setReturnValue(
+                true
+        );
     }
 }

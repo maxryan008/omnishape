@@ -20,19 +20,41 @@ public final class FacadeManager {
     private FacadeManager() {
     }
 
-    public static Optional<FacadeData> getFacade(
+    /**
+     * Fast path intended for hot block-query code.
+     *
+     * Avoids allocating an Optional every time Minecraft asks for a block
+     * shape, collision shape, mining speed, raycast, etc.
+     */
+    @Nullable
+    public static FacadeData getFacadeOrNull(
             BlockGetter level,
             BlockPos pos
     ) {
         BlockEntity blockEntity =
-                level.getBlockEntity(pos);
+                level.getBlockEntity(
+                        pos
+                );
 
         if (!(blockEntity instanceof FacadeHolder holder)) {
-            return Optional.empty();
+            return null;
         }
 
+        return holder.omnishape$getFacade();
+    }
+
+    /**
+     * Public convenience API for callers where Optional is useful.
+     */
+    public static Optional<FacadeData> getFacade(
+            BlockGetter level,
+            BlockPos pos
+    ) {
         return Optional.ofNullable(
-                holder.omnishape$getFacade()
+                getFacadeOrNull(
+                        level,
+                        pos
+                )
         );
     }
 
@@ -40,10 +62,10 @@ public final class FacadeManager {
             BlockGetter level,
             BlockPos pos
     ) {
-        return getFacade(
+        return getFacadeOrNull(
                 level,
                 pos
-        ).isPresent();
+        ) != null;
     }
 
     public static boolean canAcceptFacade(
@@ -51,14 +73,18 @@ public final class FacadeManager {
             BlockPos pos
     ) {
         BlockState state =
-                level.getBlockState(pos);
+                level.getBlockState(
+                        pos
+                );
 
         if (!FacadeRegistry.supports(state)) {
             return false;
         }
 
         BlockEntity blockEntity =
-                level.getBlockEntity(pos);
+                level.getBlockEntity(
+                        pos
+                );
 
         if (!(blockEntity instanceof FacadeHolder holder)) {
             return false;
@@ -73,14 +99,18 @@ public final class FacadeManager {
             FacadeData facade
     ) {
         BlockEntity blockEntity =
-                level.getBlockEntity(pos);
+                level.getBlockEntity(
+                        pos
+                );
 
         if (!(blockEntity instanceof FacadeHolder holder)) {
             return false;
         }
 
         if (!FacadeRegistry.supports(
-                level.getBlockState(pos)
+                level.getBlockState(
+                        pos
+                )
         )) {
             return false;
         }
@@ -112,7 +142,9 @@ public final class FacadeManager {
             boolean drop
     ) {
         BlockEntity blockEntity =
-                level.getBlockEntity(pos);
+                level.getBlockEntity(
+                        pos
+                );
 
         if (!(blockEntity instanceof FacadeHolder holder)) {
             return false;
@@ -156,7 +188,7 @@ public final class FacadeManager {
     }
 
     /**
-     * Client-side application of an authoritative server sync.
+     * Client-side application of authoritative server facade data.
      */
     public static void applyClientSync(
             Level level,
@@ -164,7 +196,9 @@ public final class FacadeManager {
             @Nullable FacadeData facade
     ) {
         BlockEntity blockEntity =
-                level.getBlockEntity(pos);
+                level.getBlockEntity(
+                        pos
+                );
 
         if (!(blockEntity instanceof FacadeHolder holder)) {
             return;
@@ -189,7 +223,9 @@ public final class FacadeManager {
         blockEntity.setChanged();
 
         BlockState state =
-                level.getBlockState(pos);
+                level.getBlockState(
+                        pos
+                );
 
         level.sendBlockUpdated(
                 pos,
@@ -200,7 +236,9 @@ public final class FacadeManager {
 
         level.getChunkSource()
                 .getLightEngine()
-                .checkBlock(pos);
+                .checkBlock(
+                        pos
+                );
     }
 
     private static void sync(

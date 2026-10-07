@@ -9,24 +9,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.shapes.CollisionContext;
-import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Optional;
-
 @Mixin(BlockBehaviour.BlockStateBase.class)
 public abstract class BlockStateFacadeMixin {
 
-    /*
-     * This is the important selection/raycast overload.
-     *
-     * BlockGetter#clip ultimately queries this method when determining which
-     * block the player's crosshair is actually pointing at.
-     */
     @Inject(
             method = "getShape(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/shapes/CollisionContext;)Lnet/minecraft/world/phys/shapes/VoxelShape;",
             at = @At("RETURN"),
@@ -42,27 +33,23 @@ public abstract class BlockStateFacadeMixin {
             return;
         }
 
-        Optional<FacadeData> facade =
-                FacadeManager.getFacade(
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
                         level,
                         pos
                 );
 
-        if (facade.isEmpty()) {
+        if (facade == null) {
             return;
         }
 
         cir.setReturnValue(
-                Shapes.or(
-                        cir.getReturnValue(),
-                        facade.get().getShape()
+                facade.getSelectionShape(
+                        cir.getReturnValue()
                 )
         );
     }
 
-    /*
-     * Collision must also be host + facade.
-     */
     @Inject(
             method = "getCollisionShape(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;Lnet/minecraft/world/phys/shapes/CollisionContext;)Lnet/minecraft/world/phys/shapes/VoxelShape;",
             at = @At("RETURN"),
@@ -78,20 +65,19 @@ public abstract class BlockStateFacadeMixin {
             return;
         }
 
-        Optional<FacadeData> facade =
-                FacadeManager.getFacade(
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
                         level,
                         pos
                 );
 
-        if (facade.isEmpty()) {
+        if (facade == null) {
             return;
         }
 
         cir.setReturnValue(
-                Shapes.or(
-                        cir.getReturnValue(),
-                        facade.get().getShape()
+                facade.getCollisionShape(
+                        cir.getReturnValue()
                 )
         );
     }
@@ -111,26 +97,24 @@ public abstract class BlockStateFacadeMixin {
             return;
         }
 
-        Optional<FacadeData> facadeOptional =
-                FacadeManager.getFacade(
+        FacadeData facade =
+                FacadeManager.getFacadeOrNull(
                         level,
                         pos
                 );
 
-        if (facadeOptional.isEmpty()) {
+        if (facade == null) {
             return;
         }
 
         if (FacadeRaycast.raycastPlayer(
                 player,
                 level,
-                pos
+                pos,
+                facade
         ) != FacadeRaycast.HitPart.FACADE) {
             return;
         }
-
-        FacadeData facade =
-                facadeOptional.get();
 
         float progress =
                 FacadeContext.withoutFacadeMining(
