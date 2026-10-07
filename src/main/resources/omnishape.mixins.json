@@ -7,8 +7,10 @@
     "AbstractContainerMenuMixin",
     "BlockEntityFacadeMixin",
     "BlockGetterFacadeMixin",
+    "BlockLightEngineFacadeMixin",
     "BlockStateFacadeMixin",
     "ExplosionDamageCalculatorMixin",
+    "LightEngineAccessor",
     "ServerPlayerGameModeFacadeMixin"
   ],
   "injectors": {
