@@ -8,7 +8,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Mixin;
@@ -21,15 +20,22 @@ import java.util.Optional;
 @Mixin(BlockBehaviour.BlockStateBase.class)
 public abstract class BlockStateFacadeMixin {
 
+    /*
+     * Target the context-free BlockStateBase#getShape(BlockGetter, BlockPos)
+     * overload explicitly.
+     *
+     * This is the overload used by a large amount of vanilla block querying
+     * code, and targeting the descriptor prevents Mixin from selecting the
+     * CollisionContext overload by ambiguity.
+     */
     @Inject(
-            method = "getShape",
+            method = "getShape(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/shapes/VoxelShape;",
             at = @At("RETURN"),
             cancellable = true
     )
     private void omnishape$includeFacadeSelectionShape(
             BlockGetter level,
             BlockPos pos,
-            CollisionContext context,
             CallbackInfoReturnable<VoxelShape> cir
     ) {
         if (FacadeContext.isShapeBypassed()) {
@@ -54,15 +60,17 @@ public abstract class BlockStateFacadeMixin {
         );
     }
 
+    /*
+     * Same idea for the context-free collision shape overload.
+     */
     @Inject(
-            method = "getCollisionShape",
+            method = "getCollisionShape(Lnet/minecraft/world/level/BlockGetter;Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/phys/shapes/VoxelShape;",
             at = @At("RETURN"),
             cancellable = true
     )
     private void omnishape$includeFacadeCollisionShape(
             BlockGetter level,
             BlockPos pos,
-            CollisionContext context,
             CallbackInfoReturnable<VoxelShape> cir
     ) {
         if (FacadeContext.isShapeBypassed()) {
