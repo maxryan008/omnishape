@@ -5,7 +5,11 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AbstractContainerMenuMixin",
-    "ExplosionDamageCalculatorMixin"
+    "BlockEntityFacadeMixin",
+    "BlockGetterFacadeMixin",
+    "BlockStateFacadeMixin",
+    "ExplosionDamageCalculatorMixin",
+    "ServerPlayerGameModeFacadeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

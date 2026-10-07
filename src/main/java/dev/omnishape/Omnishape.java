@@ -1,5 +1,6 @@
 package dev.omnishape;
 
+import dev.omnishape.api.facade.FacadeInteractions;
 import dev.omnishape.network.OmnishapePackets;
 import dev.omnishape.registry.OmnishapeBlockEntities;
 import dev.omnishape.registry.OmnishapeBlocks;
@@ -9,7 +10,9 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.world.item.CreativeModeTabs;
 
-public class Omnishape implements ModInitializer {
+public class Omnishape
+        implements ModInitializer {
+
     @Override
     public void onInitialize() {
         OmnishapeBlocks.register();
@@ -18,12 +21,26 @@ public class Omnishape implements ModInitializer {
         OmnishapeComponents.register();
         OmnishapePackets.registerC2SPackets();
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.FUNCTIONAL_BLOCKS).register(entries -> {
-            entries.accept(OmnishapeBlocks.OMNIBENCH);
-        });
+        FacadeInteractions.register();
 
-        ItemGroupEvents.modifyEntriesEvent(CreativeModeTabs.BUILDING_BLOCKS).register(entries -> {
-            entries.accept(OmnishapeBlocks.FRAME_BLOCK);
-        });
+        ItemGroupEvents.modifyEntriesEvent(
+                        CreativeModeTabs.FUNCTIONAL_BLOCKS
+                )
+                .register(
+                        entries ->
+                                entries.accept(
+                                        OmnishapeBlocks.OMNIBENCH
+                                )
+                );
+
+        ItemGroupEvents.modifyEntriesEvent(
+                        CreativeModeTabs.BUILDING_BLOCKS
+                )
+                .register(
+                        entries ->
+                                entries.accept(
+                                        OmnishapeBlocks.FRAME_BLOCK
+                                )
+                );
     }
 }
