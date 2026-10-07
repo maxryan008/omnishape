@@ -1,7 +1,7 @@
 package dev.omnishape.client.model;
 
 import dev.omnishape.api.facade.FacadeManager;
-import dev.omnishape.client.api.OmnishapeRenderer;
+import dev.omnishape.client.render.OmnishapeRenderer;
 import net.fabricmc.fabric.api.renderer.v1.model.ForwardingBakedModel;
 import net.fabricmc.fabric.api.renderer.v1.render.RenderContext;
 import net.minecraft.core.BlockPos;

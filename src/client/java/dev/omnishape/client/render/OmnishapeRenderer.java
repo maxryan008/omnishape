@@ -1,4 +1,4 @@
-package dev.omnishape.client.api;
+package dev.omnishape.client.render;
 
 import dev.omnishape.BlockRotation;
 import dev.omnishape.api.OmnishapeData;
