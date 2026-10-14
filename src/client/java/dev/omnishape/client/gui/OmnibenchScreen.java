@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import dev.architectury.event.events.client.ClientGuiEvent;
 import dev.omnishape.Constant;
 import dev.omnishape.block.entity.OmnibenchBlockEntity;
 import dev.omnishape.client.ClientHooks;
@@ -12,6 +13,7 @@ import dev.omnishape.client.mixin.AbstractContainerScreenAccessor;
 import dev.omnishape.client.mixin.ScreenAccessor;
 import dev.omnishape.menu.OmnibenchMenu;
 import dev.omnishape.registry.OmnishapeBlocks;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
@@ -253,11 +255,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     }
 
     @Override
-    public void renderBackground(GuiGraphics guiGraphics, int i, int j, float f) {
-        super.renderBackground(guiGraphics, i, j, f);
-    }
-
-    @Override
     protected void renderBg(GuiGraphics guiGraphics, float f, int i, int j) {
         guiGraphics.blit(
                 TEXTURE,
@@ -292,7 +289,6 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
-        this.renderBg(guiGraphics, partialTick, mouseX, mouseY); // Draw your background PNG
         this.renderLabels(guiGraphics, mouseX, mouseY); // Draw titles
 
         // Draw slots and items (copied from your overridden render above)
@@ -345,6 +341,10 @@ public class OmnibenchScreen extends AbstractContainerScreen<OmnibenchMenu> {
             xInput.render(guiGraphics, mouseX, mouseY, partialTick);
             yInput.render(guiGraphics, mouseX, mouseY, partialTick);
             zInput.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
+
+        if (FabricLoader.getInstance().isModLoaded("architectury")) {
+            ClientGuiEvent.RENDER_CONTAINER_FOREGROUND.invoker().render(this, guiGraphics, mouseX, mouseY, partialTick);
         }
 
         AbstractContainerScreenAccessor accessorAbstract = (AbstractContainerScreenAccessor) this;
